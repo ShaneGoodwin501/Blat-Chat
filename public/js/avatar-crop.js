@@ -65,24 +65,44 @@
         }
       });
 
+      // HEIC/HEIF/AVIF brand codes that show up in the ISOBMFF "ftyp"
+      // box. Any of these means Safari/Chrome won't decode the file in
+      // a plain <img> element on most platforms.
+      const HEIC_BRANDS = new Set([
+        'heic', 'heix', 'heim', 'heis', // HEIC family
+        'hevc', 'hevx',                 // HEVC-coded
+        'mif1', 'msf1', 'msf2',         // HEIF family
+        'avif', 'avis',                 // AVIF
+      ]);
+
+      function sniffIsoBmffBrand(bytes) {
+        // ISOBMFF: bytes 4..7 = "ftyp", bytes 8..11 = major brand.
+        // For robustness also scan a few "compatible brand" slots
+        // (bytes 16, 20, 24...) in case the major brand is "isom"/"mp42"
+        // and the HEIC brand is listed as compatible.
+        if (bytes.length < 12) return null;
+        if (!(bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70)) return null;
+        const slice = (off) => String.fromCharCode(bytes[off], bytes[off+1], bytes[off+2], bytes[off+3]);
+        const major = slice(8);
+        if (HEIC_BRANDS.has(major)) return major;
+        for (let off = 16; off + 4 <= bytes.length && off < 64; off += 4) {
+          const b = slice(off);
+          if (HEIC_BRANDS.has(b)) return b;
+        }
+        return null;
+      }
+
       function loadFile(file) {
         if (file.size > 8 * 1024 * 1024) { errEl.textContent = 'File too large (max 8MB). Pick a smaller image.'; return; }
         errEl.textContent = '';
-        // Detect format from magic bytes. The browser's <img> decoder
-        // silently fails on HEIC/HEIF (common iPhone "High Efficiency"
-        // photos that have been renamed to .jpg) and on most other
-        // non-browser-native formats, so we sniff first and tell the
-        // user what to do about it.
-        const head = file.slice(0, 12);
+        // Read enough of the head to detect the ISOBMFF container. 64
+        // bytes covers the ftyp box and several compatible-brand slots.
+        const head = file.slice(0, 64);
         const reader = new FileReader();
         reader.onload = () => {
-          const b = new Uint8Array(reader.result);
-          const isHeic =
-            (b.length >= 12 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 && // "ftyp"
-             (b[8] === 0x68 && b[9] === 0x65 && b[10] === 0x69 && b[11] === 0x63)) || // "heic"
-            (b.length >= 12 && b[8] === 0x6d && b[9] === 0x69 && b[10] === 0x66 && b[11] === 0x31); // "mif1"
-          if (isHeic) {
-            errEl.textContent = 'That looks like an iPhone HEIC photo. Most browsers can\'t decode it directly. In your phone\'s camera settings, switch to "Most Compatible" (JPG), then re-upload.';
+          const brand = sniffIsoBmffBrand(new Uint8Array(reader.result));
+          if (brand) {
+            errEl.textContent = `That looks like an iPhone HEIC/HEIF photo (${brand.toUpperCase()}). Most browsers can't decode it directly. In your phone's camera settings, switch to "Most Compatible" (JPG), then re-upload.`;
             return;
           }
           tryLoadImage(file);
@@ -91,26 +111,41 @@
       }
 
       function tryLoadImage(file) {
-        const url = URL.createObjectURL(file);
-        const tmp = new Image();
-        tmp.onload = () => {
-          imgNatural = { w: tmp.naturalWidth, h: tmp.naturalHeight };
-          if (imgEl) { stage.removeChild(imgEl); }
-          imgEl = el('img', { src: url, alt: '', class: 'crop-image', draggable: 'false' });
-          stage.appendChild(imgEl);
-          placeholder.classList.add('hidden');
-          fitToStage();
-          attachDrag();
-          saveBtn.disabled = false;
-          removeBtn.classList.remove('hidden');
-          // Lock the file input so picking the same file again re-triggers change
-          fileInput.value = '';
+        // Use a data URL rather than a blob URL. iOS Safari has known
+        // hiccups decoding blob URLs in some <img> paths (and even some
+        // JPEG-via-Photos-picker flows); a data URL always works.
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result;
+          const tmp = new Image();
+          tmp.onload = () => {
+            // iOS Safari sometimes "loads" an HEIC image but reports
+            // 0x0 dimensions. Treat that as a decode failure.
+            if (!tmp.naturalWidth || !tmp.naturalHeight) {
+              errEl.textContent = 'Your browser couldn\'t decode that image. Try a regular JPG or PNG (a screenshot works).';
+              return;
+            }
+            imgNatural = { w: tmp.naturalWidth, h: tmp.naturalHeight };
+            if (imgEl) { stage.removeChild(imgEl); }
+            imgEl = el('img', { src: dataUrl, alt: '', class: 'crop-image', draggable: 'false' });
+            stage.appendChild(imgEl);
+            placeholder.classList.add('hidden');
+            fitToStage();
+            attachDrag();
+            saveBtn.disabled = false;
+            removeBtn.classList.remove('hidden');
+            // Lock the file input so picking the same file again re-triggers change
+            fileInput.value = '';
+          };
+          tmp.onerror = () => {
+            errEl.textContent = 'Your browser couldn\'t decode that image. Try a regular JPG or PNG (a screenshot works).';
+          };
+          tmp.src = dataUrl;
         };
-        tmp.onerror = () => {
-          URL.revokeObjectURL(url);
-          errEl.textContent = 'That file isn\'t a supported image. Try a regular JPG or PNG (screenshots work great).';
+        reader.onerror = () => {
+          errEl.textContent = 'Couldn\'t read the file. Try a different one.';
         };
-        tmp.src = url;
+        reader.readAsDataURL(file);
       }
 
       function fitToStage() {
