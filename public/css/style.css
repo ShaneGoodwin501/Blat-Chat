@@ -584,12 +584,14 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 
 .msg-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
   margin-top: 6px;
   animation: msgIn var(--t-med) var(--ease) both;
 }
-.msg-row.me { justify-content: flex-end; }
+.msg-row.grouped { margin-top: 0; }
+.msg-row.grouped .avatar { display: none; }
+
 @keyframes msgIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
@@ -607,11 +609,45 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   flex: 0 0 auto;
   letter-spacing: 0.02em;
   box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 12px rgba(0,0,0,0.35);
+  overflow: hidden;
+  background: var(--bg-3);
 }
 .avatar.spacer { visibility: hidden; }
+.msg-row .avatar-img,
+.msg-row .avatar > img.avatar-img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+}
 
-.msg {
-  max-width: min(560px, 72%);
+.msg-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* let text wrap inside the bubble */
+  max-width: min(560px, 80%);
+}
+
+.msg-col .meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0 0 2px 2px;
+}
+.msg-row:not(.grouped) .msg-col .meta { margin-bottom: 4px; }
+.msg-col .meta .name {
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.msg-col.me .meta .name { color: rgba(255,255,255,0.85); }
+.msg-col .meta .time {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.msg-col.me .meta .time { color: rgba(255,255,255,0.65); }
+
+.body-wrap {
   padding: 9px 14px 8px;
   border-radius: var(--r-lg);
   background: var(--bubble-other);
@@ -619,37 +655,16 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   word-wrap: break-word;
   overflow-wrap: anywhere;
   position: relative;
+  min-width: 0;
 }
-.msg.me {
+.body-wrap.me {
   background: var(--bubble-me-bg);
   color: var(--bubble-me-text);
   border-color: rgba(255,255,255,0.18);
   box-shadow: 0 8px 24px rgba(108, 140, 255, 0.25);
 }
-.msg-row.grouped { margin-top: 0; }
-.msg-row.grouped .avatar { display: none; }
-
-.msg .meta {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  margin-bottom: 2px;
-}
-.msg-row:not(.grouped) .meta { margin-bottom: 4px; }
-.msg .meta .name {
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-.msg.me .meta .name { color: rgba(255,255,255,0.85); }
-.msg .meta .time {
-  font-size: 11px;
-  color: var(--text-faint);
-}
-.msg.me .meta .time { color: rgba(255,255,255,0.65); }
-.msg .body { white-space: pre-wrap; }
-.msg .body img.attachment {
+.body-wrap .body { white-space: pre-wrap; }
+.body-wrap .body img.attachment {
   display: block;
   max-width: 100%;
   max-height: 320px;
@@ -658,8 +673,8 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   cursor: pointer;
   transition: transform var(--t-fast) var(--ease);
 }
-.msg .body img.attachment:hover { transform: scale(1.01); }
-.msg .body a.attach-link {
+.body-wrap .body img.attachment:hover { transform: scale(1.01); }
+.body-wrap .body a.attach-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -667,7 +682,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   font-size: 13px;
   color: var(--accent-3);
 }
-.msg.me .body a.attach-link { color: rgba(255,255,255,0.92); }
+.body-wrap.me .body a.attach-link { color: rgba(255,255,255,0.92); }
 
 /* ---- Composer ---- */
 .composer {

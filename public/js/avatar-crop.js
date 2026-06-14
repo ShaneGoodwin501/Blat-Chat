@@ -33,7 +33,7 @@
       let dragging = false, lastPx = 0, lastPy = 0;
 
       const fileInput = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', style: 'display:none' });
-      const zoomRange = el('input', { type: 'range', min: '1', max: '3', step: '0.01', value: '1' });
+      const zoomRange = el('input', { type: 'range', min: '0.2', max: '3', step: '0.01', value: '1' });
       const stage = el('div', { class: 'crop-stage', style: `width:${SIZE}px;height:${SIZE}px` });
       const placeholder = el('div', { class: 'crop-placeholder' }, 'Pick a photo to start');
       stage.appendChild(placeholder);
@@ -149,9 +149,16 @@
       }
 
       function fitToStage() {
-        // Cover-fit the image inside the stage, then centre it.
+        // Contain-fit: scale so the WHOLE image fits inside the square,
+        // so the user can see everything and zoom in on what they want.
+        // (Previously used cover-fit which clipped edges and gave no
+        // way to zoom out below that minimum.)
         const sx = SIZE / imgNatural.w, sy = SIZE / imgNatural.h;
-        state.scale = Math.max(sx, sy); // already >=1 to fill square
+        state.scale = Math.min(sx, sy);
+        // If even contain would zoom in past 1x (very small image), cap at 1.
+        if (state.scale > 1) state.scale = 1;
+        // And floor at the slider minimum so the UI stays in range.
+        if (state.scale < Number(zoomRange.min)) state.scale = Number(zoomRange.min);
         zoomRange.value = String(state.scale);
         // Centre
         state.x = (SIZE - imgNatural.w * state.scale) / 2;
@@ -199,7 +206,7 @@
           if (!imgEl) return;
           e.preventDefault();
           const delta = -e.deltaY * 0.0015;
-          state.scale = Math.max(1, Math.min(3, state.scale + delta));
+          state.scale = Math.max(Number(zoomRange.min), Math.min(Number(zoomRange.max), state.scale + delta));
           zoomRange.value = String(state.scale);
           apply();
         }, { passive: false });

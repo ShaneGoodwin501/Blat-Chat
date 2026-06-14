@@ -124,9 +124,10 @@
 
     let avatarHtmlStr;
     if (isMe) {
-      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
+      // Show the user's own avatar too (was a hidden spacer before).
+      avatarHtmlStr = avatarHtml(userStub);
     } else if (grouped) {
-      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
+      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true"></div>`;
     } else {
       avatarHtmlStr = avatarHtml(userStub);
     }
@@ -139,8 +140,6 @@
         attachHtml += `<a class="attach-link" href="/uploads/${encodeURIComponent(m.attachment_filename)}" target="_blank" rel="noopener">📎 ${escapeHtml(m.attachment_original || 'file')}</a>`;
       }
     }
-    const safeBody = m.body ? `<div class="body">${escapeHtml(m.body)}${attachHtml}</div>` : (attachHtml ? `<div class="body">${attachHtml}</div>` : '');
-
     const metaHtml = grouped ? '' : `
       <div class="meta">
         <span class="name">${escapeHtml(display)}</span>
@@ -148,7 +147,14 @@
       </div>
     `;
 
-    row.innerHTML = `${avatarHtmlStr}<div class="msg${isMe ? ' me' : ''}">${metaHtml}${safeBody}</div>`;
+    // Layout: [avatar] [name+time on top, bubble below]. All messages
+    // (including the user's own) sit on the left, with the avatar on
+    // the far left. The bubble keeps its visual style for the message
+    // body; only the body sits inside the bubble now.
+    const isGroupedClass = grouped ? ' grouped' : '';
+    const ownClass = isMe ? ' me' : '';
+    row.className = `msg-row${isGroupedClass}`;
+    row.innerHTML = `${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
     messagesEl.appendChild(row);
 
     lastRenderedUserId = m.user_id;
