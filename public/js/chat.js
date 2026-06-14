@@ -450,10 +450,14 @@
       pop.appendChild(b);
     });
     document.body.appendChild(pop);
-    // Position below the button (button is in the header at the top of the page)
-    const r = emojiBtn.getBoundingClientRect();
-    pop.style.left = r.left + 'px';
-    pop.style.top = (r.bottom + 6) + 'px';
+    // Position above the composer so the popover shows just above the message
+    // input row, never covering the messages. Anchor: popover's bottom edge sits
+    // a few pixels above the composer's top edge; horizontally, align the left
+    // edge with the emoji button.
+    const btnRect = emojiBtn.getBoundingClientRect();
+    const composerRect = composer.getBoundingClientRect();
+    pop.style.left = btnRect.left + 'px';
+    pop.style.bottom = (window.innerHeight - composerRect.top + 6) + 'px';
     // If the popover would overflow the right edge, push it back inside.
     const popRect = pop.getBoundingClientRect();
     if (popRect.right > window.innerWidth - 4) {

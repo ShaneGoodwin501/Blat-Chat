@@ -343,27 +343,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .menu-btn.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .menu-btn.open .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* ----- Header icon button (e.g. emoji picker) -----
-   Sits in the chat header next to the hamburger. Uses the same visual
-   language as the menu button (square, dim, hover-lifts) so the two
-   feel like a paired control surface. */
-header.bar .header-emoji-btn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  background: var(--bg-3);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  font-size: 18px;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
-}
-header.bar .header-emoji-btn:hover { color: var(--text); background: var(--bg-4); }
-
 .dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -574,10 +553,17 @@ header.bar .header-emoji-btn:hover { color: var(--text); background: var(--bg-4)
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  /* Clip the messages list to the chat column on small viewports so
+     overflow can't push the composer off-screen. */
+  overflow: hidden;
   position: relative;
 }
 .messages {
   flex: 1 1 auto;
+  /* Always keep at least 120px of message space, even on very small
+     phones. Prevents the messages area from collapsing to 0 height
+     when the parent flex container can't determine a baseline size. */
+  min-height: 120px;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -1200,7 +1186,6 @@ header.bar .header-emoji-btn:hover { color: var(--text); background: var(--bg-4)
   .admin .row-actions button { padding: 4px 8px; font-size: 11px; }
   header.bar h1 { font-size: 15px; }
   header.bar .me .me-greeting { display: none; }
-  header.bar .header-emoji-btn { width: 36px; height: 36px; font-size: 16px; }
 }
 
 /* ---- Utilities ---- */
