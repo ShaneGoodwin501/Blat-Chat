@@ -123,15 +123,10 @@
     const color = avatarColor(String(m.user_id) + ':' + display);
     const userStub = { id: m.user_id, display_name: display, username: m.username, has_avatar: m.has_avatar };
 
-    let avatarHtmlStr;
-    if (isMe) {
-      // Show the user's own avatar too (was a hidden spacer before).
-      avatarHtmlStr = avatarHtml(userStub);
-    } else if (grouped) {
-      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true"></div>`;
-    } else {
-      avatarHtmlStr = avatarHtml(userStub);
-    }
+    // Every message gets a real avatar. Even grouped (same author, within
+    // 2 min) — only the name+time meta gets hidden for grouped messages;
+    // the avatar stays so the user can always see who they're looking at.
+    const avatarHtmlStr = avatarHtml(userStub);
 
     let attachHtml = '';
     if (m.attachment_id && m.attachment_filename) {

@@ -600,7 +600,10 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   animation: msgIn var(--t-med) var(--ease) both;
 }
 .msg-row.grouped { margin-top: 0; }
-.msg-row.grouped .avatar { display: none; }
+/* NOTE: every message keeps its avatar — we used to hide .avatar on grouped
+   rows, but that left whole stretches of messages with no sender icon. The
+   meta (name+time) is already hidden for grouped rows, which is the actual
+   visual "grouped" indicator we want. */
 
 /* Own messages: avatar on the right, bubble flush to the right edge */
 .msg-row.me {
@@ -633,7 +636,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   overflow: hidden;
   background: var(--bg-3);
 }
-.avatar.spacer { visibility: hidden; }
 .msg-row .avatar-img,
 .msg-row .avatar > img.avatar-img {
   width: 32px;
