@@ -68,6 +68,29 @@
       function loadFile(file) {
         if (file.size > 8 * 1024 * 1024) { errEl.textContent = 'File too large (max 8MB). Pick a smaller image.'; return; }
         errEl.textContent = '';
+        // Detect format from magic bytes. The browser's <img> decoder
+        // silently fails on HEIC/HEIF (common iPhone "High Efficiency"
+        // photos that have been renamed to .jpg) and on most other
+        // non-browser-native formats, so we sniff first and tell the
+        // user what to do about it.
+        const head = file.slice(0, 12);
+        const reader = new FileReader();
+        reader.onload = () => {
+          const b = new Uint8Array(reader.result);
+          const isHeic =
+            (b.length >= 12 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70 && // "ftyp"
+             (b[8] === 0x68 && b[9] === 0x65 && b[10] === 0x69 && b[11] === 0x63)) || // "heic"
+            (b.length >= 12 && b[8] === 0x6d && b[9] === 0x69 && b[10] === 0x66 && b[11] === 0x31); // "mif1"
+          if (isHeic) {
+            errEl.textContent = 'That looks like an iPhone HEIC photo. Most browsers can\'t decode it directly. In your phone\'s camera settings, switch to "Most Compatible" (JPG), then re-upload.';
+            return;
+          }
+          tryLoadImage(file);
+        };
+        reader.readAsArrayBuffer(head);
+      }
+
+      function tryLoadImage(file) {
         const url = URL.createObjectURL(file);
         const tmp = new Image();
         tmp.onload = () => {
@@ -83,7 +106,10 @@
           // Lock the file input so picking the same file again re-triggers change
           fileInput.value = '';
         };
-        tmp.onerror = () => { errEl.textContent = 'Could not read that file. Try JPG or PNG.'; URL.revokeObjectURL(url); };
+        tmp.onerror = () => {
+          URL.revokeObjectURL(url);
+          errEl.textContent = 'That file isn\'t a supported image. Try a regular JPG or PNG (screenshots work great).';
+        };
         tmp.src = url;
       }
 

@@ -148,6 +148,7 @@ button.ghost:hover { color: var(--text); background: var(--bg-3); }
   display: grid;
   place-items: center;
   padding: 0;
+  margin: 0;
   min-height: 0;
   transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
 }
@@ -730,10 +731,11 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   animation: msgIn var(--t-fast) var(--ease);
 }
 .composer .attach-preview img {
-  max-height: 60px;
-  max-width: 80px;
+  height: 72px;
+  width: 72px;
   border-radius: var(--r-sm);
   object-fit: cover;
+  flex: 0 0 auto;
 }
 .composer .attach-preview .name {
   color: var(--text-dim);
@@ -742,6 +744,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: none; /* filename hidden — the thumbnail speaks for itself */
 }
 .composer .attach-preview button {
   background: transparent;
