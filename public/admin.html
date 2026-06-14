@@ -12,8 +12,16 @@
     <header class="bar">
       <h1><span class="dot"></span> Admin</h1>
       <span class="spacer"></span>
-      <a class="btn" href="/">Chat</a>
-      <button class="link" id="logoutBtn">Sign out</button>
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+      <div class="dropdown hidden" id="menuDropdown" role="menu">
+        <a href="/" role="menuitem"><span class="ico">💬</span> Back to chat</a>
+        <div class="divider"></div>
+        <button id="logoutBtn" class="danger" role="menuitem"><span class="ico">⎋</span> Sign out</button>
+      </div>
     </header>
 
     <main class="admin">

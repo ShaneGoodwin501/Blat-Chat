@@ -9,10 +9,15 @@
   const attachName = document.getElementById('attachName');
   const attachClear = document.getElementById('attachClear');
   const meLabel = document.getElementById('meLabel');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuDropdown = document.getElementById('menuDropdown');
   const nickBtn = document.getElementById('nickBtn');
   const pwBtn = document.getElementById('pwBtn');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxClose = document.getElementById('lightboxClose');
   const toastStack = document.getElementById('toastStack');
 
   let me = null;
@@ -186,6 +191,58 @@
       });
     });
   }
+
+  function openLightbox(src, alt) {
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || '';
+    lightbox.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeLightbox() {
+    lightbox.classList.add('hidden');
+    lightboxImg.src = '';
+    document.body.style.overflow = '';
+  }
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+
+  // Click any image attachment in the message list → open lightbox (not new tab).
+  messagesEl.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && t.tagName === 'IMG' && t.classList && t.classList.contains('attachment')) {
+      e.preventDefault();
+      openLightbox(t.src, t.alt);
+    }
+  });
+
+  // ---- Menu (hamburger) ----
+  function setMenuOpen(open) {
+    menuDropdown.classList.toggle('hidden', !open);
+    menuBtn.classList.toggle('open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMenuOpen(menuDropdown.classList.contains('hidden'));
+  });
+  document.addEventListener('click', (e) => {
+    if (!menuDropdown.classList.contains('hidden')
+        && !menuDropdown.contains(e.target)
+        && !menuBtn.contains(e.target)) {
+      setMenuOpen(false);
+    }
+  });
+  // Close menu after clicking any item
+  menuDropdown.addEventListener('click', (e) => {
+    if (e.target.closest('button, a')) setMenuOpen(false);
+  });
+
+  // Global Escape: close lightbox first, then menu
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!lightbox.classList.contains('hidden')) { closeLightbox(); return; }
+    if (!menuDropdown.classList.contains('hidden')) { setMenuOpen(false); return; }
+  });
 
   async function loadMe() {
     const r = await fetch('/api/auth/me');

@@ -16,10 +16,18 @@
         <span class="me-greeting">Signed in as</span>
         <span class="me-name" id="meLabel">…</span>
       </span>
-      <button class="link" id="pwBtn" title="Change your password">Password</button>
-      <button class="link" id="nickBtn" title="Change your nickname">Nickname</button>
-      <a class="btn hidden" id="adminLink" href="/admin">Admin</a>
-      <button class="link" id="logoutBtn">Sign out</button>
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+      <div class="dropdown hidden" id="menuDropdown" role="menu">
+        <button id="nickBtn" role="menuitem"><span class="ico">✎</span> Change nickname</button>
+        <button id="pwBtn"   role="menuitem"><span class="ico">🔒</span> Change password</button>
+        <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">⚙</span> Admin</a>
+        <div class="divider"></div>
+        <button id="logoutBtn" class="danger" role="menuitem"><span class="ico">⎋</span> Sign out</button>
+      </div>
     </header>
 
     <div class="chat">
@@ -36,6 +44,11 @@
         <button type="submit" class="send-btn" aria-label="Send">➤</button>
       </form>
     </div>
+  </div>
+
+  <div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close" title="Close (Esc)">✕</button>
+    <img id="lightboxImg" alt="">
   </div>
 
   <div class="toast-stack" id="toastStack"></div>

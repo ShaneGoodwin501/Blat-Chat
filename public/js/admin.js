@@ -5,6 +5,8 @@
   const addForm = document.getElementById('addUserForm');
   const addErr = document.getElementById('addUserErr');
   const usersCount = document.getElementById('usersCount');
+  const menuBtn = document.getElementById('menuBtn');
+  const menuDropdown = document.getElementById('menuDropdown');
   const logoutBtn = document.getElementById('logoutBtn');
   const toastStack = document.getElementById('toastStack');
 
@@ -237,6 +239,26 @@
     } else if (act === 'delete') {
       await del(id);
     }
+  });
+
+  function setMenuOpen(open) {
+    menuDropdown.classList.toggle('hidden', !open);
+    menuBtn.classList.toggle('open', open);
+    menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMenuOpen(menuDropdown.classList.contains('hidden'));
+  });
+  document.addEventListener('click', (e) => {
+    if (!menuDropdown.classList.contains('hidden')
+        && !menuDropdown.contains(e.target)
+        && !menuBtn.contains(e.target)) {
+      setMenuOpen(false);
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menuDropdown.classList.contains('hidden')) setMenuOpen(false);
   });
 
   logoutBtn.addEventListener('click', async () => {

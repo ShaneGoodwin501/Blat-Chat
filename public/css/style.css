@@ -247,13 +247,18 @@ header.bar .me {
   font-size: 12px;
   color: var(--text-dim);
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
 }
-header.bar .me .me-name { color: var(--text); font-weight: 500; }
+header.bar .me .me-greeting { color: var(--text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+header.bar .me .me-name { color: var(--text); font-size: 13px; font-weight: 500; }
+@media (max-width: 600px) {
+  header.bar .me { display: none; } /* mobile: save space, name visible in menu */
+}
 header.bar a.btn, header.bar button.link {
   background: transparent;
-  border: 1px solid var(--border-2);
+  border: 1px solid var(--border);
   color: var(--text-dim);
   padding: 6px 10px;
   border-radius: var(--r-sm);
@@ -262,11 +267,143 @@ header.bar a.btn, header.bar button.link {
   cursor: pointer;
   transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
   text-decoration: none;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  box-shadow: none;
 }
 header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
+
+/* ----- Hamburger menu button + dropdown ----- */
+.menu-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: background var(--t-fast) var(--ease);
+}
+.menu-btn:hover { background: var(--bg-4); }
+.menu-btn .bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+  transform-origin: center;
+}
+.menu-btn.open .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.menu-btn.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.menu-btn.open .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  min-width: 220px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  padding: 6px;
+  box-shadow: var(--shadow-pop);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropfade 0.14s var(--ease);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+@keyframes dropfade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.dropdown button, .dropdown a {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  text-decoration: none;
+  transition: background var(--t-fast) var(--ease);
+}
+.dropdown button:hover, .dropdown a:hover { background: var(--bg-3); text-decoration: none; }
+.dropdown .ico {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  font-size: 14px;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+.dropdown button:hover .ico, .dropdown a:hover .ico { color: var(--text); }
+.dropdown .divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
+.dropdown .danger { color: var(--danger); }
+.dropdown .danger .ico { color: var(--danger); }
+
+/* ----- Lightbox (image preview overlay) ----- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 6, 10, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadein 0.14s var(--ease);
+  cursor: zoom-out;
+}
+.lightbox img {
+  max-width: 92vw;
+  max-height: 92vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: var(--r-sm);
+  box-shadow: 0 16px 60px rgba(0, 0, 0, 0.6);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
+.lightbox-close:focus-visible { outline: 2px solid var(--accent-1); outline-offset: 2px; }
 
 /* ---- Chat area ---- */
 .chat {
