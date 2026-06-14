@@ -24,15 +24,13 @@
   let me = null;
   let myAvatarVersion = 0; // bump on my own avatar change for cache-bust
   let pendingAttachment = null;
-  let pendingThumbUrl = null; // blob URL of the current composer preview; revokee'd on clear/replace
+  // The composer preview is a base64 data URL (from FileReader) — no manual revoke needed.
+  let pendingThumbUrl = null;
   let socket = null;
   const knownMessageIds = new Set();
   let lastDayKey = null;
   let lastRenderedUserId = null;
   let lastRenderedTime = null;
-  // Known users keyed by id — used to update avatars when presence
-  // events arrive (e.g. someone uploads a new photo).
-  const userById = new Map();
 
   function escapeHtml(s) {
     return String(s)
@@ -65,10 +63,13 @@
     const display = opts.display_name || user.display_name || user.username || 'user';
     const initial = initialsOf(display);
     const color = avatarColor(String(user.id) + ':' + display);
-    if (user.has_avatar) {
-      return `<img class="avatar-img" src="${avatarUrl(user.id)}" alt="${escapeHtml(display)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar fallback',textContent:${JSON.stringify(initial)},style:${JSON.stringify('background:' + color)}}))">`;
-    }
-    return `<div class="avatar fallback" style="background:${color}" aria-hidden="true">${escapeHtml(initial)}</div>`;
+    const onlineClass = user.online ? ' online' : '';
+    // Wrap the img/initial in a div.avatar so the online dot can be
+    // positioned relative to it.
+    const inner = user.has_avatar
+      ? `<img class="avatar-img" src="${avatarUrl(user.id)}" alt="${escapeHtml(display)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar fallback',textContent:${JSON.stringify(initial)},style:${JSON.stringify('background:' + color)}}))">`
+      : `<div class="avatar fallback" style="background:${color}" aria-hidden="true">${escapeHtml(initial)}</div>`;
+    return `<div class="avatar avatar-wrap${onlineClass}">${inner}<span class="online-dot" title="${escapeHtml(t('common.online_indicator'))}"></span></div>`;
   }
   function dayKey(iso) {
     if (!iso) return '';
@@ -115,13 +116,10 @@
     const minutesAgo = lastRenderedTime ? (Date.parse(m.created_at.replace(' ', 'T') + 'Z') - Date.parse(lastRenderedTime.replace(' ', 'T') + 'Z')) / 60000 : Infinity;
     const grouped = sameAuthor && minutesAgo < 2;
 
-    const row = document.createElement('div');
-    row.className = 'msg-row' + (isMe ? ' me' : '') + (grouped ? ' grouped' : '');
-
     const display = m.display_name || m.username || 'user';
     const initial = initialsOf(display);
     const color = avatarColor(String(m.user_id) + ':' + display);
-    const userStub = { id: m.user_id, display_name: display, username: m.username, has_avatar: m.has_avatar };
+    const userStub = { id: m.user_id, display_name: display, username: m.username, has_avatar: m.has_avatar, online: m.online };
 
     // Every message gets a real avatar. Even grouped (same author, within
     // 2 min) — only the name+time meta gets hidden for grouped messages;
@@ -151,11 +149,28 @@
     const isGroupedClass = grouped ? ' grouped' : '';
     const ownClass = isMe ? ' me' : '';
     row.className = `msg-row${isGroupedClass}${ownClass}`;
-    row.innerHTML = `${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
+    row.dataset.id = m.id;
+    row.dataset.userId = m.user_id;
+    // Action buttons — only for own messages (or for admin, on any message).
+    // Hidden by default; shown on row hover.
+    const canDelete = isMe || (me && me.role === 'admin');
+    const actionsHtml = canDelete ? `
+      <div class="msg-actions">
+        <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
+        <button type="button" data-act="delete" class="danger" title="${escapeHtml(t('chat.delete'))}" aria-label="${escapeHtml(t('chat.delete'))}">×</button>
+      </div>
+    ` : '';
+    row.innerHTML = `${actionsHtml}${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
     messagesEl.appendChild(row);
 
     lastRenderedUserId = m.user_id;
     lastRenderedTime = m.created_at;
+  }
+
+  // Render a tombstone for a deleted message.
+  function removeMessage(id) {
+    const row = messagesEl.querySelector(`.msg-row[data-id="${id}"]`);
+    if (row) row.remove();
   }
 
   function scrollToBottom(smooth = true) {
@@ -171,7 +186,7 @@
   }
 
   // ---- Modal (used for password change) ----
-  function showModal({ title, body, primaryLabel = 'Save', onSubmit }) {
+  function showModal({ title, body, primaryLabel, onSubmit }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement('div');
       backdrop.className = 'modal-backdrop';
@@ -182,8 +197,8 @@
             <div class="form-rows">${body}</div>
             <div class="err" id="modalErr"></div>
             <div class="form-actions">
-              <button type="button" class="secondary" id="modalCancel">Cancel</button>
-              <button type="submit">${escapeHtml(primaryLabel)}</button>
+              <button type="button" class="secondary" id="modalCancel">${escapeHtml(t('common.cancel'))}</button>
+              <button type="submit">${escapeHtml(primaryLabel || t('common.save'))}</button>
             </div>
           </form>
         </div>
@@ -210,7 +225,7 @@
           if (result === true || result === undefined) close(data);
           else if (typeof result === 'string') err.textContent = result;
         } catch (ex) {
-          err.textContent = ex.message || 'Failed.';
+          err.textContent = ex.message || t('misc.failed');
         }
       });
     });
@@ -475,6 +490,194 @@
     toast(t('chat.toast.password_updated'), 'success');
   });
 
+  // ---- Scroll / load-older wiring ----
+  const loadOlderBtn = document.getElementById('loadOlderBtn');
+  const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+  const typingIndicator = document.getElementById('typingIndicator');
+
+  // Track which message IDs we know about and the oldest we've seen.
+  let oldestId = null;
+  let isLoadingOlder = false;
+  let noMoreHistory = false;
+  // Track "stuck at bottom" state for the scroll-to-bottom FAB.
+  let stuckAtBottom = true;
+
+  function updateScrollUI() {
+    if (stuckAtBottom) scrollBottomBtn.classList.add('hidden');
+    else scrollBottomBtn.classList.remove('hidden');
+  }
+
+  function isAtBottom() {
+    // 24px tolerance so we still treat "almost at the bottom" as at-bottom.
+    return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 24;
+  }
+
+  messagesEl.addEventListener('scroll', () => {
+    stuckAtBottom = isAtBottom();
+    updateScrollUI();
+    // If the user scrolls all the way to the top, show the "Load older" button.
+    if (messagesEl.scrollTop < 40 && oldestId && !isLoadingOlder && !noMoreHistory) {
+      loadOlderBtn.classList.remove('hidden');
+    } else {
+      loadOlderBtn.classList.add('hidden');
+    }
+  });
+
+  loadOlderBtn.addEventListener('click', async () => {
+    if (isLoadingOlder || !oldestId) return;
+    isLoadingOlder = true;
+    const originalText = loadOlderBtn.textContent;
+    loadOlderBtn.disabled = true;
+    loadOlderBtn.textContent = t('chat.loading_older');
+    if (socket && socket.connected) {
+      socket.emit('load_older', oldestId, (ack) => {
+        isLoadingOlder = false;
+        loadOlderBtn.disabled = false;
+        loadOlderBtn.textContent = originalText;
+        if (!ack || !ack.ok) {
+          loadOlderBtn.classList.add('hidden');
+          return;
+        }
+        if (!ack.messages || ack.messages.length === 0) {
+          noMoreHistory = true;
+          loadOlderBtn.classList.add('hidden');
+          toast(t('chat.no_more_history'), 'info');
+          return;
+        }
+        // Remember the scroll position so the inserted older messages
+        // don't yank the user's view down.
+        const prevHeight = messagesEl.scrollHeight;
+        const prevTop = messagesEl.scrollTop;
+        ack.messages.forEach(renderMessage);
+        oldestId = ack.messages[0].id;
+        if (ack.messages.length < 50) {
+          noMoreHistory = true;
+          loadOlderBtn.classList.add('hidden');
+        } else {
+          loadOlderBtn.classList.remove('hidden');
+        }
+        // Restore scroll position so the user sees the same messages.
+        messagesEl.scrollTop = prevTop + (messagesEl.scrollHeight - prevHeight);
+        // If we've never scrolled away from the bottom, stay glued.
+        if (stuckAtBottom) scrollToBottom(false);
+      });
+    } else {
+      isLoadingOlder = false;
+      loadOlderBtn.disabled = false;
+      loadOlderBtn.textContent = originalText;
+    }
+  });
+
+  scrollBottomBtn.addEventListener('click', () => scrollToBottom(true));
+
+  // ---- Per-message action wiring (copy, delete) ----
+  messagesEl.addEventListener('click', (e) => {
+    // Lightbox for image attachments
+    const tImg = e.target;
+    if (tImg && tImg.tagName === 'IMG' && tImg.classList && tImg.classList.contains('attachment')) {
+      e.preventDefault();
+      openLightbox(tImg.src, tImg.alt);
+      return;
+    }
+    // Action button
+    const btn = e.target.closest('button[data-act]');
+    if (btn) {
+      const row = btn.closest('.msg-row');
+      if (!row) return;
+      const id = Number(row.dataset.id);
+      const act = btn.dataset.act;
+      if (act === 'delete') {
+        if (!confirm(t('chat.delete_confirm'))) return;
+        if (socket && socket.connected) {
+          socket.emit('delete_message', id, (ack) => {
+            if (ack && ack.ok) {
+              removeMessage(id);
+            } else if (ack && ack.error) {
+              toast(ack.error === 'forbidden' ? t('chat.delete') + ': ' + t('misc.failed') : t('misc.failed'), 'error');
+            }
+          });
+        }
+      } else if (act === 'copy') {
+        const body = row.querySelector('.body');
+        const text = body ? body.innerText.trim() : '';
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            () => toast(t('chat.copied'), 'success'),
+            () => toast(t('misc.failed'), 'error')
+          );
+        } else {
+          // Fallback for older browsers.
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); toast(t('chat.copied'), 'success'); }
+          catch { toast(t('misc.failed'), 'error'); }
+          ta.remove();
+        }
+      }
+    }
+  });
+
+  // ---- Typing indicator ----
+  // Track who is currently typing (user_id -> display_name + timer).
+  const typingUsers = new Map();
+  function renderTyping() {
+    const list = [...typingUsers.values()];
+    let text;
+    if (list.length === 0) {
+      text = '';
+    } else if (list.length === 1) {
+      text = t('chat.typing_one', { name: list[0] });
+    } else if (list.length === 2) {
+      text = t('chat.typing_two', { a: list[0], b: list[1] });
+    } else {
+      text = t('chat.typing_many');
+    }
+    if (text) {
+      typingIndicator.textContent = text;
+      typingIndicator.classList.remove('hidden');
+    } else {
+      typingIndicator.classList.add('hidden');
+    }
+  }
+  function dropTypingAfter(userId, ms) {
+    setTimeout(() => {
+      if (typingUsers.delete(userId)) renderTyping();
+    }, ms);
+  }
+
+  // Emit a typing event 800ms after the user starts typing, then refresh
+  // every 2.5s while they continue typing. Stop the heartbeat and emit
+  // stop_typing when the input is empty or 3s of inactivity.
+  let typingEmitTimer = null;
+  let typingHeartbeat = null;
+  function emitTyping() {
+    if (socket && socket.connected) socket.emit('typing');
+  }
+  function stopTyping() {
+    if (typingHeartbeat) { clearInterval(typingHeartbeat); typingHeartbeat = null; }
+    if (typingEmitTimer) { clearTimeout(typingEmitTimer); typingEmitTimer = null; }
+    if (socket && socket.connected) socket.emit('stop_typing');
+  }
+  textInput.addEventListener('input', () => {
+    if (!textInput.value.trim()) { stopTyping(); return; }
+    if (!typingHeartbeat) {
+      // Debounce: don't emit until 800ms of typing.
+      if (typingEmitTimer) clearTimeout(typingEmitTimer);
+      typingEmitTimer = setTimeout(() => {
+        typingEmitTimer = null;
+        emitTyping();
+        typingHeartbeat = setInterval(emitTyping, 2500);
+      }, 800);
+    }
+  });
+  textInput.addEventListener('blur', stopTyping);
+  composer.addEventListener('submit', stopTyping);
+
   logoutBtn.addEventListener('click', async () => {
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
     window.location.href = '/login';
@@ -483,24 +686,60 @@
   function connect() {
     socket = io({ withCredentials: true });
     socket.on('connect', () => { /* noop */ });
-    socket.on('disconnect', () => toast(t('chat.err.disconnected'), 'error'));
+    socket.on('disconnect', () => {
+      toast(t('chat.err.disconnected'), 'error');
+      // Mark all users as offline on disconnect.
+      messagesEl.querySelectorAll('.avatar-wrap.online').forEach((el) => el.classList.remove('online'));
+    });
     socket.on('history', (rows) => {
       knownMessageIds.clear();
       messagesEl.innerHTML = '';
       lastDayKey = null;
       lastRenderedUserId = null;
       lastRenderedTime = null;
+      oldestId = rows.length ? rows[0].id : null;
+      noMoreHistory = rows.length < 50;
       rows.forEach(renderMessage);
       scrollToBottom(false);
+      stuckAtBottom = true;
+      updateScrollUI();
+      // Show the "Load older" button if we got the full page of history.
+      if (rows.length >= 50 && !noMoreHistory) {
+        loadOlderBtn.classList.remove('hidden');
+      }
     });
     socket.on('message', (m) => {
       renderMessage(m);
-      scrollToBottom();
+      oldestId = oldestId == null ? m.id : Math.min(oldestId, m.id);
+      // Auto-scroll only if the user was already at the bottom.
+      if (stuckAtBottom) scrollToBottom();
     });
-    // Another user (or me) changed their display name or avatar.
-    // Refresh already-rendered avatars for the user whose state changed.
+    socket.on('message_deleted', ({ id }) => {
+      removeMessage(id);
+      toast(t('chat.deleted'), 'info');
+    });
+    socket.on('typing', (p) => {
+      if (!p || !p.user_id || (me && p.user_id === me.id)) return;
+      typingUsers.set(p.user_id, p.display_name || '…');
+      renderTyping();
+      dropTypingAfter(p.user_id, 4000);
+    });
+    socket.on('stop_typing', (p) => {
+      if (!p || !p.user_id) return;
+      if (typingUsers.delete(p.user_id)) renderTyping();
+    });
     socket.on('presence', (p) => {
       if (!p || !p.user_id) return;
+      // Toggle the online class on every avatar wrapper for this user.
+      const online = !!p.online;
+      messagesEl.querySelectorAll(`.avatar-wrap`).forEach((el) => {
+        // We don't have a direct user id on the wrapper, so we walk up
+        // to the row and match by data-user-id.
+        const row = el.closest('.msg-row');
+        if (row && Number(row.dataset.userId) === p.user_id) {
+          el.classList.toggle('online', online);
+        }
+      });
       // Refresh the avatar <img> for this user (force re-fetch).
       const target = `/avatars/${encodeURIComponent(p.user_id)}`;
       document.querySelectorAll(`img.avatar-img[src^="${target}"]`).forEach((im) => {

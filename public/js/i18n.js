@@ -56,6 +56,21 @@
       'chat.attach_clear': 'Remove',
       'chat.day.today': 'Today',
       'chat.day.yesterday': 'Yesterday',
+      'chat.scroll_to_bottom': 'Jump to latest',
+      'chat.typing_one': '{name} is typing…',
+      'chat.typing_two': '{a} and {b} are typing…',
+      'chat.typing_many': 'Several people are typing…',
+      'chat.load_older': 'Load older messages',
+      'chat.loading_older': 'Loading…',
+      'chat.no_more_history': 'No more messages.',
+      'chat.delete': 'Delete',
+      'chat.delete_confirm': 'Delete this message?',
+      'chat.deleted': 'Message deleted',
+      'chat.image_removed': 'Image removed',
+      'chat.online': 'Online',
+      'chat.offline': 'Offline',
+      'chat.copy': 'Copy',
+      'chat.copied': 'Copied',
       'chat.err.disconnected': 'Disconnected. Reconnecting…',
       'chat.err.image_too_large': 'Image too large (max 5MB).',
       'chat.err.image_format': 'Only JPG, PNG, GIF, WebP allowed.',
@@ -175,6 +190,9 @@
       // Misc
       'misc.server_err': 'Server: {err}',
       'misc.server_status': 'Server returned {status}.',
+      'misc.failed': 'Something went wrong.',
+
+      'common.online_indicator': 'Online',
     },
 
     ru: {
@@ -215,6 +233,21 @@
       'chat.attach_clear': '\u0423\u0431\u0440\u0430\u0442\u044C',
       'chat.day.today': '\u0421\u0435\u0433\u043E\u0434\u043D\u044F',
       'chat.day.yesterday': '\u0412\u0447\u0435\u0440\u0430',
+      'chat.scroll_to_bottom': '\u041A \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u043C\u0443',
+      'chat.typing_one': '{name} \u043F\u0435\u0447\u0430\u0442\u0430\u0435\u0442\u2026',
+      'chat.typing_two': '{a} \u0438 {b} \u043F\u0435\u0447\u0430\u0442\u0430\u044E\u0442\u2026',
+      'chat.typing_many': '\u041D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0447\u0435\u043B\u043E\u0432\u0435\u043A \u043F\u0435\u0447\u0430\u0442\u0430\u044E\u0442\u2026',
+      'chat.load_older': '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0441\u0442\u0430\u0440\u044B\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F',
+      'chat.loading_older': '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026',
+      'chat.no_more_history': '\u0411\u043E\u043B\u044C\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0439 \u043D\u0435\u0442.',
+      'chat.delete': '\u0423\u0434\u0430\u043B\u0438\u0442\u044C',
+      'chat.delete_confirm': '\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435?',
+      'chat.deleted': '\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0443\u0434\u0430\u043B\u0435\u043D\u043E',
+      'chat.image_removed': '\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0443\u0434\u0430\u043B\u0435\u043D\u043E',
+      'chat.online': '\u0412 \u0441\u0435\u0442\u0438',
+      'chat.offline': '\u041D\u0435 \u0432 \u0441\u0435\u0442\u0438',
+      'chat.copy': '\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C',
+      'chat.copied': '\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E',
       'chat.err.disconnected': '\u0421\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435 \u043F\u043E\u0442\u0435\u0440\u044F\u043D\u043E. \u041F\u0435\u0440\u0435\u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435\u2026',
       'chat.err.image_too_large': '\u0424\u043E\u0442\u043E \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435 (\u043C\u0430\u043A\u0441. 5 \u041C\u0411).',
       'chat.err.image_format': '\u0414\u043E\u043F\u0443\u0441\u043A\u0430\u044E\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E JPG, PNG, GIF, WebP.',
@@ -329,6 +362,9 @@
 
       'misc.server_err': '\u0421\u0435\u0440\u0432\u0435\u0440: {err}',
       'misc.server_status': '\u0421\u0435\u0440\u0432\u0435\u0440 \u0432\u0435\u0440\u043D\u0443\u043B {status}.',
+      'misc.failed': '\u0427\u0442\u043E-\u0442\u043E \u043F\u043E\u0448\u043B\u043E \u043D\u0435 \u0442\u0430\u043A.',
+
+      'common.online_indicator': '\u0412 \u0441\u0435\u0442\u0438',
     },
   };
 

@@ -24,11 +24,26 @@ function buildAuthRouter(db) {
     if (!user || !user.active || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: 'invalid_credentials' });
     }
-    req.session.userId = user.id;
-    req.session.username = user.username;
-    req.session.role = user.role;
-    req.session.displayName = user.display_name;
-    res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, has_avatar: !!user.has_avatar }, default_language: getDefaultLanguage(db) });
+    // Regenerate the session ID on successful login to prevent session
+    // fixation attacks (an attacker planting a known session ID before
+    // the victim logs in).
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('session regenerate error', err);
+        return res.status(500).json({ error: 'server' });
+      }
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+      req.session.displayName = user.display_name;
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('session save error', saveErr);
+          return res.status(500).json({ error: 'server' });
+        }
+        res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, has_avatar: !!user.has_avatar }, default_language: getDefaultLanguage(db) });
+      });
+    });
   });
 
   router.post('/logout', (req, res) => {

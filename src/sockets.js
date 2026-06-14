@@ -26,6 +26,9 @@ function attachSockets(io, db, sessionMiddleware) {
 
     socket.data.user = user;
 
+    // Announce that this user just connected.
+    socket.broadcast.emit('presence', { user_id: user.id, online: true });
+
     // On connect, send the most recent 50 messages.
     const recent = db.prepare(`
       SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
@@ -72,6 +75,46 @@ function attachSockets(io, db, sessionMiddleware) {
       }
     });
 
+    // Delete own message (or any message, if admin).
+    socket.on('delete_message', (id, ack) => {
+      const mid = Number(id);
+      if (!mid) return ack && ack({ error: 'bad_input' });
+      const m = db.prepare('SELECT user_id FROM messages WHERE id = ?').get(mid);
+      if (!m) return ack && ack({ error: 'not_found' });
+      if (m.user_id !== user.id && user.role !== 'admin') {
+        return ack && ack({ error: 'forbidden' });
+      }
+      db.prepare('DELETE FROM messages WHERE id = ?').run(mid);
+      io.emit('message_deleted', { id: mid });
+      ack && ack({ ok: true });
+    });
+
+    // Load older messages (for the "Load older" button).
+    socket.on('load_older', (before, ack) => {
+      const beforeId = Number(before);
+      if (!beforeId) return ack && ack({ error: 'bad_input' });
+      const rows = db.prepare(`
+        SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
+               u.display_name, u.username, u.has_avatar,
+               a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
+        FROM messages m
+        JOIN users u ON u.id = m.user_id
+        LEFT JOIN attachments a ON a.id = m.attachment_id
+        WHERE m.id < ?
+        ORDER BY m.id DESC
+        LIMIT 50
+      `).all(beforeId).reverse();
+      ack && ack({ ok: true, messages: rows });
+    });
+
+    // Typing indicator — broadcast to others (not back to the typer).
+    socket.on('typing', () => {
+      socket.broadcast.emit('typing', { user_id: user.id, display_name: user.display_name });
+    });
+    socket.on('stop_typing', () => {
+      socket.broadcast.emit('stop_typing', { user_id: user.id });
+    });
+
     // Change own nickname
     socket.on('set_display_name', (name, ack) => {
       const clean = String(name || '').trim().slice(0, 32);
@@ -92,7 +135,8 @@ function attachSockets(io, db, sessionMiddleware) {
     });
 
     socket.on('disconnect', () => {
-      // No-op: with HTTP polling + long-lived sessions, the socket can come back.
+      // Broadcast a presence event so other clients can show "offline" indicators.
+      socket.broadcast.emit('presence', { user_id: user.id, online: false });
     });
   });
 }

@@ -81,6 +81,10 @@ const sessionMiddleware = buildSessionMiddleware(db);
 app.use(sessionMiddleware);
 
 app.use(express.urlencoded({ extended: false, limit: '64kb' }));
+// Global JSON body size cap. Per-route express.json() is still allowed
+// (for uploads/forms), but a 64KB cap here prevents giant JSON bodies
+// from clogging the parser. Larger multipart bodies go through multer.
+app.use(express.json({ limit: '64kb' }));
 
 // Serve uploaded files to authenticated users only
 const uploadsDir = path.join(DATA_DIR, 'uploads');
@@ -98,7 +102,7 @@ app.get('/uploads/:filename', requireAuth, (req, res) => {
 // Serve profile photos. Always JPEG. Long cache is fine because we
 // version the URL with ?v=<ts> from the client.
 const avatarDir = path.join(DATA_DIR, 'avatars');
-app.get('/avatars/:user_id', (req, res) => {
+app.get('/avatars/:user_id', requireAuth, (req, res) => {
   const id = String(req.params.user_id).replace(/[^0-9]/g, '');
   if (!id) return res.status(400).end();
   const filePath = path.join(avatarDir, `${id}.jpg`);
