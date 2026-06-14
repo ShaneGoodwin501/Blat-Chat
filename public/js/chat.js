@@ -24,6 +24,7 @@
   let me = null;
   let myAvatarVersion = 0; // bump on my own avatar change for cache-bust
   let pendingAttachment = null;
+  let pendingThumbUrl = null; // blob URL of the current composer preview; revokee'd on clear/replace
   let socket = null;
   const knownMessageIds = new Set();
   let lastDayKey = null;
@@ -284,16 +285,20 @@
   function clearAttachment() {
     pendingAttachment = null;
     photoInput.value = '';
+    if (pendingThumbUrl) { URL.revokeObjectURL(pendingThumbUrl); pendingThumbUrl = null; }
     attachPreview.classList.add('hidden');
-    attachThumb.src = '';
+    attachThumb.removeAttribute('src');
     attachName.textContent = '';
   }
 
   function setAttachment(file, attachment) {
     pendingAttachment = { file, attachment };
-    const url = URL.createObjectURL(file);
-    attachThumb.src = url;
-    attachThumb.onload = () => URL.revokeObjectURL(url);
+    if (pendingThumbUrl) URL.revokeObjectURL(pendingThumbUrl); // free the previous preview
+    pendingThumbUrl = URL.createObjectURL(file);
+    attachThumb.src = pendingThumbUrl;
+    // NOTE: do NOT revoke the URL on onload — the browser re-decodes the image on
+    // every reflow/repaint, and revoking here produces a broken-image icon.
+    // The URL is released by clearAttachment() or when a new file replaces it.
     attachName.textContent = `${file.name} · ${(file.size / 1024).toFixed(0)} KB`;
     attachPreview.classList.remove('hidden');
   }
