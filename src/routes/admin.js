@@ -10,7 +10,7 @@ function buildAdminRouter(db) {
   // List users
   router.get('/users', (req, res) => {
     const rows = db.prepare(`
-      SELECT id, username, display_name, role, active, created_at
+      SELECT id, username, display_name, role, active, has_avatar, created_at
       FROM users ORDER BY id ASC
     `).all();
     res.json({ users: rows });

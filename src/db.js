@@ -20,6 +20,7 @@ function init(dataDir) {
       display_name  TEXT    NOT NULL,
       role          TEXT    NOT NULL DEFAULT 'user' CHECK(role IN ('user','admin')),
       active        INTEGER NOT NULL DEFAULT 1,
+      has_avatar    INTEGER NOT NULL DEFAULT 0,
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
@@ -42,6 +43,12 @@ function init(dataDir) {
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // Lightweight migration: add has_avatar to existing installs.
+  const userCols = db.pragma('table_info(users)');
+  if (!userCols.some(c => c.name === 'has_avatar')) {
+    db.exec('ALTER TABLE users ADD COLUMN has_avatar INTEGER NOT NULL DEFAULT 0');
+  }
 
   return db;
 }

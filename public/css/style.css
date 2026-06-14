@@ -389,6 +389,106 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .dropdown .danger { color: var(--danger); }
 .dropdown .danger .ico { color: var(--danger); }
 
+/* ----- Avatar cropper modal ----- */
+.avatar-modal { width: min(420px, 96vw); }
+.crop-help {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 12px;
+  text-align: center;
+}
+.crop-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0 12px;
+}
+.crop-frame {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  background:
+    repeating-conic-gradient(rgba(255,255,255,0.04) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  cursor: grab;
+}
+.crop-frame.dragging { cursor: grabbing; }
+.crop-stage {
+  position: relative;
+  overflow: hidden;
+}
+.crop-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+  font-size: 13px;
+  pointer-events: none;
+}
+.crop-image {
+  position: absolute;
+  left: 0;
+  top: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+}
+/* A circular guide showing what will be saved. */
+.crop-circle-mask {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  outline: 2px dashed rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+.crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.crop-zoom label { font-size: 12px; color: var(--text-dim); min-width: 36px; }
+.crop-zoom input[type=range] { flex: 1 1 auto; padding: 0; background: transparent; border: 0; }
+.crop-err, .crop-status {
+  font-size: 12px;
+  min-height: 16px;
+  margin-bottom: 6px;
+}
+.crop-err { color: var(--danger); }
+.crop-status { color: var(--text-dim); }
+
+/* ----- Avatar <img> replacement ----- */
+.avatar-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-3);
+}
+.msg .avatar-img,
+.avatar.avatar-img-wrap {
+  width: 100%;
+  height: 100%;
+}
+.avatar.avatar-img-wrap {
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
 /* ----- Lightbox (image preview overlay) ----- */
 .lightbox {
   position: fixed;

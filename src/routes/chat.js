@@ -14,7 +14,7 @@ function buildChatRouter(db) {
     if (before) {
       rows = db.prepare(`
         SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
-               u.display_name, u.username,
+               u.display_name, u.username, u.has_avatar,
                a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
         FROM messages m
         JOIN users u ON u.id = m.user_id
@@ -26,7 +26,7 @@ function buildChatRouter(db) {
     } else {
       rows = db.prepare(`
         SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
-               u.display_name, u.username,
+               u.display_name, u.username, u.has_avatar,
                a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
         FROM messages m
         JOIN users u ON u.id = m.user_id

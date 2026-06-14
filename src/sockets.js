@@ -18,7 +18,7 @@ function attachSockets(io, db, sessionMiddleware) {
     }
 
     // Load current user
-    const user = db.prepare('SELECT id, username, display_name, role, active FROM users WHERE id = ?').get(sess.userId);
+    const user = db.prepare('SELECT id, username, display_name, role, active, has_avatar FROM users WHERE id = ?').get(sess.userId);
     if (!user || !user.active) {
       socket.emit('auth_required');
       return socket.disconnect(true);
@@ -29,7 +29,7 @@ function attachSockets(io, db, sessionMiddleware) {
     // On connect, send the most recent 50 messages.
     const recent = db.prepare(`
       SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
-             u.display_name, u.username,
+             u.display_name, u.username, u.has_avatar,
              a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
       FROM messages m
       JOIN users u ON u.id = m.user_id
@@ -57,7 +57,7 @@ function attachSockets(io, db, sessionMiddleware) {
         const info = db.prepare('INSERT INTO messages (user_id, body, attachment_id) VALUES (?, ?, ?)').run(user.id, text, attachmentId);
         const row = db.prepare(`
           SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
-                 u.display_name, u.username,
+                 u.display_name, u.username, u.has_avatar,
                  a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
           FROM messages m
           JOIN users u ON u.id = m.user_id
@@ -80,6 +80,15 @@ function attachSockets(io, db, sessionMiddleware) {
       user.display_name = clean;
       io.emit('presence', { user_id: user.id, display_name: clean });
       ack && ack({ ok: true, display_name: clean });
+    });
+
+    // Change own avatar (client emits after the upload succeeds)
+    socket.on('set_avatar', (state, ack) => {
+      const has = !!(state && state.has_avatar);
+      db.prepare('UPDATE users SET has_avatar = ? WHERE id = ?').run(has ? 1 : 0, user.id);
+      user.has_avatar = has;
+      io.emit('presence', { user_id: user.id, has_avatar: has });
+      ack && ack({ ok: true });
     });
 
     socket.on('disconnect', () => {

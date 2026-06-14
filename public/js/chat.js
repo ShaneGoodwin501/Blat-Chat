@@ -13,6 +13,7 @@
   const menuDropdown = document.getElementById('menuDropdown');
   const nickBtn = document.getElementById('nickBtn');
   const pwBtn = document.getElementById('pwBtn');
+  const avatarMenuBtn = document.getElementById('avatarMenuBtn');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
   const lightbox = document.getElementById('lightbox');
@@ -21,12 +22,16 @@
   const toastStack = document.getElementById('toastStack');
 
   let me = null;
+  let myAvatarVersion = 0; // bump on my own avatar change for cache-bust
   let pendingAttachment = null;
   let socket = null;
   const knownMessageIds = new Set();
   let lastDayKey = null;
   let lastRenderedUserId = null;
   let lastRenderedTime = null;
+  // Known users keyed by id — used to update avatars when presence
+  // events arrive (e.g. someone uploads a new photo).
+  const userById = new Map();
 
   function escapeHtml(s) {
     return String(s)
@@ -37,7 +42,7 @@
       .replace(/'/g, '&#39;');
   }
 
-  // Stable per-user color from a hash.
+  // Stable per-user color from a hash (used for initials fallback).
   function avatarColor(seed) {
     let h = 0;
     for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
@@ -50,6 +55,19 @@
     const parts = s.split(/\s+/);
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  // Cache-busted avatar URL for a given user id.
+  function avatarUrl(userId) {
+    return `/avatars/${encodeURIComponent(userId)}?v=${me && me.id === userId ? myAvatarVersion : 0}`;
+  }
+  function avatarHtml(user, opts = {}) {
+    const display = opts.display_name || user.display_name || user.username || 'user';
+    const initial = initialsOf(display);
+    const color = avatarColor(String(user.id) + ':' + display);
+    if (user.has_avatar) {
+      return `<img class="avatar-img" src="${avatarUrl(user.id)}" alt="${escapeHtml(display)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar fallback',textContent:${JSON.stringify(initial)},style:${JSON.stringify('background:' + color)}}))">`;
+    }
+    return `<div class="avatar fallback" style="background:${color}" aria-hidden="true">${escapeHtml(initial)}</div>`;
   }
   function dayKey(iso) {
     if (!iso) return '';
@@ -102,14 +120,15 @@
     const display = m.display_name || m.username || 'user';
     const initial = initialsOf(display);
     const color = avatarColor(String(m.user_id) + ':' + display);
+    const userStub = { id: m.user_id, display_name: display, username: m.username, has_avatar: m.has_avatar };
 
-    let avatarHtml;
+    let avatarHtmlStr;
     if (isMe) {
-      avatarHtml = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
+      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
     } else if (grouped) {
-      avatarHtml = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
+      avatarHtmlStr = `<div class="avatar spacer" aria-hidden="true">${escapeHtml(initial)}</div>`;
     } else {
-      avatarHtml = `<div class="avatar" style="background:${color}" aria-hidden="true">${escapeHtml(initial)}</div>`;
+      avatarHtmlStr = avatarHtml(userStub);
     }
 
     let attachHtml = '';
@@ -129,7 +148,7 @@
       </div>
     `;
 
-    row.innerHTML = `${avatarHtml}<div class="msg${isMe ? ' me' : ''}">${metaHtml}${safeBody}</div>`;
+    row.innerHTML = `${avatarHtmlStr}<div class="msg${isMe ? ' me' : ''}">${metaHtml}${safeBody}</div>`;
     messagesEl.appendChild(row);
 
     lastRenderedUserId = m.user_id;
@@ -334,6 +353,48 @@
     });
   });
 
+  // Profile photo: open the cropper
+  avatarMenuBtn.addEventListener('click', async () => {
+    if (typeof window.openAvatarCropper !== 'function') {
+      toast('Photo uploader not loaded. Refresh and try again.', 'error');
+      return;
+    }
+    const r = await window.openAvatarCropper({
+      title: 'Profile photo',
+      onSaved: (url) => {
+        myAvatarVersion = Date.now();
+        me.has_avatar = 1;
+        toast('Profile photo updated.', 'success');
+        if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: true });
+        // Force every already-rendered avatar image of mine to refresh
+        document.querySelectorAll('img.avatar-img').forEach((im) => {
+          // Bump the cache-buster query
+          try {
+            const u = new URL(im.src, location.origin);
+            if (u.pathname === avatarUrl(me.id).split('?')[0] || im.alt === me.display_name) {
+              im.src = avatarUrl(me.id);
+            }
+          } catch {}
+        });
+      },
+      onRemoved: () => {
+        me.has_avatar = 0;
+        myAvatarVersion = Date.now();
+        toast('Photo removed. Back to colourful initials.', 'success');
+        if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: false });
+        document.querySelectorAll('img.avatar-img').forEach((im) => {
+          // We can't tell ours apart from others by URL alone (cache-bust
+          // differs); refresh any image, the broken ones re-render via
+          // the onerror fallback.
+          const u = new URL(im.src, location.origin);
+          u.searchParams.set('v', '0'); // force 404 → onerror replaces
+          im.src = u.toString();
+        });
+      },
+    });
+    if (r === null) return; // closed
+  });
+
   // Nickname change via inline prompt (kept simple)
   nickBtn.addEventListener('click', () => {
     const cur = me ? me.display_name : '';
@@ -413,6 +474,25 @@
     socket.on('message', (m) => {
       renderMessage(m);
       scrollToBottom();
+    });
+    // Another user (or me) changed their display name or avatar.
+    // Refresh already-rendered avatars for the user whose state changed.
+    socket.on('presence', (p) => {
+      if (!p || !p.user_id) return;
+      // Refresh the avatar <img> for this user (force re-fetch).
+      const target = `/avatars/${encodeURIComponent(p.user_id)}`;
+      document.querySelectorAll(`img.avatar-img[src^="${target}"]`).forEach((im) => {
+        const u = new URL(im.src, location.origin);
+        if (p.has_avatar === false) {
+          // Force 404 to trigger the onerror fallback
+          u.searchParams.set('v', '0');
+          im.src = u.toString();
+        } else {
+          // Re-fetch with cache-bust
+          u.searchParams.set('v', String(Date.now()));
+          im.src = u.toString();
+        }
+      });
     });
     socket.on('auth_required', () => { window.location.href = '/login'; });
   }

@@ -16,6 +16,7 @@ const { buildAuthRouter } = require('./src/routes/auth');
 const { buildChatRouter } = require('./src/routes/chat');
 const { buildAdminRouter } = require('./src/routes/admin');
 const { buildUploadRouter } = require('./src/routes/upload');
+const { buildAvatarRouter } = require('./src/routes/avatar');
 const { attachSockets } = require('./src/sockets');
 
 // ---- Config ----
@@ -93,6 +94,19 @@ app.get('/uploads/:filename', requireAuth, (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
+// Serve profile photos. Always JPEG. Long cache is fine because we
+// version the URL with ?v=<ts> from the client.
+const avatarDir = path.join(DATA_DIR, 'avatars');
+app.get('/avatars/:user_id', (req, res) => {
+  const id = String(req.params.user_id).replace(/[^0-9]/g, '');
+  if (!id) return res.status(400).end();
+  const filePath = path.join(avatarDir, `${id}.jpg`);
+  if (!fs.existsSync(filePath)) return res.status(404).end();
+  res.setHeader('Content-Type', 'image/jpeg');
+  res.setHeader('Cache-Control', 'private, max-age=86400');
+  fs.createReadStream(filePath).pipe(res);
+});
+
 // HTML routes FIRST — must run before the static middleware, otherwise
 // express.static with `extensions: ['html']` will serve /admin and /
 // by mapping them to admin.html / index.html directly, bypassing our auth.
@@ -115,6 +129,7 @@ app.use('/api/auth', buildAuthRouter(db));
 app.use('/api', buildChatRouter(db));
 app.use('/api/admin', buildAdminRouter(db));
 app.use('/api', buildUploadRouter(db, DATA_DIR));
+app.use('/api/auth', buildAvatarRouter(db, DATA_DIR));
 
 // Health
 app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));

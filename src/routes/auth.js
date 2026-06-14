@@ -19,7 +19,7 @@ function buildAuthRouter(db) {
     const password = String(req.body?.password || '');
     if (!username || !password) return res.status(400).json({ error: 'missing_fields' });
 
-    const user = db.prepare('SELECT id, username, password_hash, display_name, role, active FROM users WHERE username = ?').get(username);
+    const user = db.prepare('SELECT id, username, password_hash, display_name, role, active, has_avatar FROM users WHERE username = ?').get(username);
     if (!user || !user.active || !verifyPassword(password, user.password_hash)) {
       return res.status(401).json({ error: 'invalid_credentials' });
     }
@@ -27,7 +27,7 @@ function buildAuthRouter(db) {
     req.session.username = user.username;
     req.session.role = user.role;
     req.session.displayName = user.display_name;
-    res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role } });
+    res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, has_avatar: !!user.has_avatar } });
   });
 
   router.post('/logout', (req, res) => {
@@ -35,9 +35,9 @@ function buildAuthRouter(db) {
   });
 
   router.get('/me', requireAuth, (req, res) => {
-    const user = db.prepare('SELECT id, username, display_name, role, active FROM users WHERE id = ?').get(req.session.userId);
+    const user = db.prepare('SELECT id, username, display_name, role, active, has_avatar FROM users WHERE id = ?').get(req.session.userId);
     if (!user) return res.status(401).json({ error: 'not_authenticated' });
-    res.json({ user });
+    res.json({ user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, active: user.active, has_avatar: !!user.has_avatar } });
   });
 
   // POST /api/auth/password — change your own password.

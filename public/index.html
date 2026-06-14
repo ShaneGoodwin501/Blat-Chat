@@ -22,11 +22,12 @@
         <span class="bar"></span>
       </button>
       <div class="dropdown hidden" id="menuDropdown" role="menu">
-        <button id="nickBtn" role="menuitem"><span class="ico">✎</span> Change nickname</button>
-        <button id="pwBtn"   role="menuitem"><span class="ico">🔒</span> Change password</button>
+        <button id="avatarMenuBtn" role="menuitem" type="button"><span class="ico">🖼</span> Profile photo</button>
+        <button id="nickBtn" role="menuitem" type="button"><span class="ico">✎</span> Change nickname</button>
+        <button id="pwBtn" role="menuitem" type="button"><span class="ico">🔒</span> Change password</button>
         <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">⚙</span> Admin</a>
         <div class="divider"></div>
-        <button id="logoutBtn" class="danger" role="menuitem"><span class="ico">⎋</span> Sign out</button>
+        <button id="logoutBtn" class="danger" role="menuitem" type="button"><span class="ico">⎋</span> Sign out</button>
       </div>
     </header>
 
@@ -54,6 +55,7 @@
   <div class="toast-stack" id="toastStack"></div>
 
   <script src="/js/password-reveal.js"></script>
+  <script src="/js/avatar-crop.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/chat.js"></script>
 </body>
