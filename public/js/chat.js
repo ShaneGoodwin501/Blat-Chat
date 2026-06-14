@@ -4,6 +4,7 @@
   const composer = document.getElementById('composer');
   const textInput = document.getElementById('textInput');
   const photoInput = document.getElementById('photoInput');
+  const emojiBtn = document.getElementById('emojiBtn');
   const attachPreview = document.getElementById('attachPreview');
   const attachThumb = document.getElementById('attachThumb');
   const attachName = document.getElementById('attachName');
@@ -14,6 +15,8 @@
   const nickBtn = document.getElementById('nickBtn');
   const pwBtn = document.getElementById('pwBtn');
   const langBtn = document.getElementById('langBtn');
+  const notifBtn = document.getElementById('notifBtn');
+  const notifBtnLabel = document.getElementById('notifBtnLabel');
   const avatarMenuBtn = document.getElementById('avatarMenuBtn');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -408,6 +411,62 @@
 
   attachClear.addEventListener('click', clearAttachment);
 
+  // ---- Emoji picker ----
+  // Common emoji set. The picker is a small popover above the button.
+  // Tap an emoji to insert it at the cursor position in the textarea.
+  const EMOJIS = [
+    '\u{1F600}','\u{1F602}','\u{1F605}','\u{1F60A}','\u{1F60D}','\u{1F618}',
+    '\u{1F61B}','\u{1F61C}','\u{1F61D}','\u{1F642}','\u{1F643}','\u{1F644}',
+    '\u{1F914}','\u{1F928}','\u{1F62D}','\u{1F60E}','\u{1F913}','\u{1F929}',
+    '\u{1F44D}','\u{1F44E}','\u{1F64C}','\u{1F64F}','\u{1F4AF}','\u{1F389}',
+    '\u{1F525}','\u{2728}','\u{1F31F}','\u{1F4AA}','\u{1F3AF}','\u{1F680}',
+    '\u{1F4AC}','\u{1F4AD}','\u{2764}','\u{1F9E1}','\u{1F49B}','\u{1F499}',
+    '\u{1F60E}','\u{1F970}','\u{1F60C}','\u{1F609}','\u{1F60F}','\u{1F612}',
+    '\u{1F389}','\u{1F38A}','\u{1F388}','\u{1F381}','\u{1F3B6}','\u{1F3B5}',
+    '\u{2615}','\u{1F375}','\u{1F37B}','\u{1F377}','\u{1F354}','\u{1F35D}',
+  ];
+  let emojiPopover = null;
+  function closeEmojiPopover() {
+    if (emojiPopover) { emojiPopover.remove(); emojiPopover = null; }
+  }
+  emojiBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (emojiPopover) { closeEmojiPopover(); return; }
+    const pop = document.createElement('div');
+    pop.className = 'emoji-popover';
+    pop.setAttribute('role', 'grid');
+    EMOJIS.forEach((em) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'emoji-opt';
+      b.textContent = em;
+      b.setAttribute('aria-label', 'Emoji ' + em);
+      b.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        insertAtCursor(textInput, em);
+        textInput.focus();
+      });
+      pop.appendChild(b);
+    });
+    document.body.appendChild(pop);
+    // Position above the button
+    const r = emojiBtn.getBoundingClientRect();
+    pop.style.right = (window.innerWidth - r.right) + 'px';
+    pop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+    emojiPopover = pop;
+    setTimeout(() => {
+      document.addEventListener('click', closeEmojiPopover, { once: true });
+    }, 0);
+  });
+  function insertAtCursor(input, text) {
+    const start = input.selectionStart || input.value.length;
+    const end = input.selectionEnd || input.value.length;
+    input.value = input.value.slice(0, start) + text + input.value.slice(end);
+    const pos = start + text.length;
+    input.setSelectionRange(pos, pos);
+  }
+
   function autoResize() {
     textInput.style.height = 'auto';
     textInput.style.height = Math.min(textInput.scrollHeight, 140) + 'px';
@@ -482,6 +541,60 @@
     });
     if (r === null) return; // closed
   });
+
+  // ---- Browser push notifications ----
+  // When the tab is hidden and a new message arrives, show a system
+  // notification. User must opt in via the menu.
+  function notifSupported() {
+    return 'Notification' in window && 'serviceWorker' in navigator;
+  }
+  function updateNotifLabel() {
+    if (!notifBtn) return;
+    if (!notifSupported()) { notifBtn.classList.add('hidden'); return; }
+    if (Notification.permission === 'granted') {
+      notifBtnLabel.textContent = t('chat.notif.disable');
+      notifBtn.classList.add('notif-on');
+    } else {
+      notifBtnLabel.textContent = t('chat.notif.enable');
+      notifBtn.classList.remove('notif-on');
+    }
+  }
+  if (notifBtn) {
+    notifBtn.addEventListener('click', async () => {
+      if (!notifSupported()) return;
+      if (Notification.permission === 'granted') {
+        // We can't actually un-grant. Just show a hint.
+        toast(t('chat.notif.denied'), 'info');
+        return;
+      }
+      try {
+        const r = await Notification.requestPermission();
+        if (r === 'granted') {
+          toast(t('chat.notif.granted'), 'success');
+        } else {
+          toast(t('chat.notif.denied'), 'error');
+        }
+      } catch (e) {
+        toast(t('common.error'), 'error');
+      }
+      updateNotifLabel();
+    });
+    updateNotifLabel();
+  }
+  function showMessageNotification(m) {
+    if (!notifSupported() || Notification.permission !== 'granted') return;
+    // Don't notify for our own messages.
+    if (me && m.user_id === me.id) return;
+    // Don't notify if the tab is visible.
+    if (document.visibilityState === 'visible') return;
+    const body = m.body || (m.attachment_id ? t('chat.image_removed').replace('Image removed', 'Sent a photo') : '…');
+    const title = t('chat.notif.new_message', { name: m.display_name || '?', body: '' });
+    try {
+      const n = new Notification(title, { body, tag: 'blatchat-' + (m.id || ''), silent: false });
+      n.onclick = () => { window.focus(); n.close(); };
+      setTimeout(() => n.close(), 8000);
+    } catch {}
+  }
 
   // Language picker — set or clear the per-user preference. The server
   // is the source of truth; the localStorage write in setLang() is just
@@ -817,6 +930,8 @@
       oldestId = oldestId == null ? m.id : Math.min(oldestId, m.id);
       // Auto-scroll only if the user was already at the bottom.
       if (stuckAtBottom) scrollToBottom();
+      // Browser notification if the tab is hidden and user opted in.
+      showMessageNotification(m);
     });
     socket.on('message_deleted', ({ id }) => {
       removeMessage(id);

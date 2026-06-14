@@ -1005,6 +1005,38 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .lang-picker .lang-option:hover { background: var(--bg-3); border-color: var(--accent-1); }
 .lang-picker .lang-option.active { background: var(--accent-grad); border-color: transparent; color: #fff; }
 
+/* ---- Emoji popover (above the emoji button) ---- */
+.emoji-popover {
+  position: fixed;
+  z-index: 50;
+  background: var(--bg-1);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(8, 32px);
+  gap: 2px;
+  box-shadow: var(--shadow-2);
+  animation: msgIn var(--t-fast) var(--ease);
+  max-width: 90vw;
+}
+.emoji-popover .emoji-opt {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+  box-shadow: none;
+  transition: background var(--t-fast) var(--ease);
+}
+.emoji-popover .emoji-opt:hover { background: var(--bg-3); }
+
 /* ---- Settings (admin) ---- */
 .admin .settings-row {
   display: flex;

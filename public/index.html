@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=15">
+  <link rel="stylesheet" href="/css/style.css?v=16">
 </head>
 <body>
   <div class="app">
@@ -27,6 +27,7 @@
         <button id="nickBtn" role="menuitem" type="button"><span class="ico">&#x270E;</span> <span data-i18n="menu.change_nickname">Change nickname</span></button>
         <button id="pwBtn" role="menuitem" type="button"><span class="ico">&#x1F512;</span> <span data-i18n="menu.change_password">Change password</span></button>
         <button id="langBtn" role="menuitem" type="button"><span class="ico">&#x1F310;</span> <span data-i18n="menu.language">Language</span></button>
+        <button id="notifBtn" role="menuitem" type="button"><span class="ico">&#x1F514;</span> <span id="notifBtnLabel" data-i18n="chat.notif.enable">Notifications</span></button>
         <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">&#x2699;</span> <span data-i18n="menu.admin">Admin</span></a>
         <div class="divider"></div>
         <button id="logoutBtn" class="danger" role="menuitem" type="button"><span class="ico">&#x238B;</span> <span data-i18n="menu.sign_out">Sign out</span></button>
@@ -44,6 +45,7 @@
           <span class="name" id="attachName"></span>
           <button type="button" id="attachClear" data-i18n-aria="chat.attach_clear" title="Remove">&times;</button>
         </div>
+        <button type="button" class="icon-btn emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
         <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
         <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp">
         <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
@@ -59,11 +61,11 @@
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-  <script src="/js/i18n.js?v=4"></script>
+  <script src="/js/i18n.js?v=5"></script>
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=11"></script>
+  <script src="/js/chat.js?v=12"></script>
   <script>
     // Apply language as soon as the strings are in scope.
     (async function () {
