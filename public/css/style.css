@@ -343,6 +343,27 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .menu-btn.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
 .menu-btn.open .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
+/* ----- Header icon button (e.g. emoji picker) -----
+   Sits in the chat header next to the hamburger. Uses the same visual
+   language as the menu button (square, dim, hover-lifts) so the two
+   feel like a paired control surface. */
+header.bar .header-emoji-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-size: 18px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+header.bar .header-emoji-btn:hover { color: var(--text); background: var(--bg-4); }
+
 .dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -852,12 +873,23 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-top: 1px solid var(--border);
   position: relative;
+  /* Keep the composer inside the chat panel even when flex children would
+     push it wider than the viewport. Without min-width:0 + overflow:hidden
+     the row overflows horizontally and the leftmost child (the emoji button)
+     gets pushed off-screen on narrow phones. */
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 .composer textarea {
   resize: none;
   min-height: 42px;
   max-height: 140px;
   flex: 1 1 auto;
+  /* Default flex item min-width is auto (= min-content) which keeps a
+     textarea from shrinking below one word's width. Set it to 0 so the
+     flex shorthand can actually compress it. */
+  min-width: 0;
   font-size: 15px;
   line-height: 1.4;
   padding: 10px 14px;
@@ -1168,6 +1200,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   .admin .row-actions button { padding: 4px 8px; font-size: 11px; }
   header.bar h1 { font-size: 15px; }
   header.bar .me .me-greeting { display: none; }
+  header.bar .header-emoji-btn { width: 36px; height: 36px; font-size: 16px; }
 }
 
 /* ---- Utilities ---- */

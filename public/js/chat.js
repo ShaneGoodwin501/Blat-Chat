@@ -450,10 +450,15 @@
       pop.appendChild(b);
     });
     document.body.appendChild(pop);
-    // Position above the button
+    // Position below the button (button is in the header at the top of the page)
     const r = emojiBtn.getBoundingClientRect();
-    pop.style.right = (window.innerWidth - r.right) + 'px';
-    pop.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+    pop.style.left = r.left + 'px';
+    pop.style.top = (r.bottom + 6) + 'px';
+    // If the popover would overflow the right edge, push it back inside.
+    const popRect = pop.getBoundingClientRect();
+    if (popRect.right > window.innerWidth - 4) {
+      pop.style.left = (window.innerWidth - popRect.width - 4) + 'px';
+    }
     emojiPopover = pop;
     setTimeout(() => {
       document.addEventListener('click', closeEmojiPopover, { once: true });

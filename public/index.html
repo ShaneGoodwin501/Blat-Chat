@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=16">
+  <link rel="stylesheet" href="/css/style.css?v=17">
 </head>
 <body>
   <div class="app">
@@ -17,6 +17,7 @@
         <span class="me-greeting" data-i18n="header.signed_in_as">Signed in as</span>
         <span class="me-name" id="meLabel">&hellip;</span>
       </span>
+      <button type="button" class="icon-btn header-emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
       <button class="menu-btn" id="menuBtn" aria-label="Menu" data-i18n-aria="header.menu" title="Menu" aria-haspopup="true" aria-expanded="false">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -45,7 +46,6 @@
           <span class="name" id="attachName"></span>
           <button type="button" id="attachClear" data-i18n-aria="chat.attach_clear" title="Remove">&times;</button>
         </div>
-        <button type="button" class="icon-btn emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
         <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
         <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp">
         <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
@@ -65,7 +65,7 @@
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=12"></script>
+  <script src="/js/chat.js?v=13"></script>
   <script>
     // Apply language as soon as the strings are in scope.
     (async function () {
