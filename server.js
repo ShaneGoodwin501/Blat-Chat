@@ -17,7 +17,7 @@ const { buildChatRouter } = require('./src/routes/chat');
 const { buildAdminRouter } = require('./src/routes/admin');
 const { buildUploadRouter } = require('./src/routes/upload');
 const { buildAvatarRouter } = require('./src/routes/avatar');
-const { buildPublicSettingsRouter, buildAdminSettingsRouter, getDefaultLanguage } = require('./src/routes/settings');
+const { buildPublicSettingsRouter, buildAdminSettingsRouter, buildUserLanguageRouter, getDefaultLanguage, getEffectiveLanguage } = require('./src/routes/settings');
 const { attachSockets } = require('./src/sockets');
 
 // ---- Config ----
@@ -116,13 +116,15 @@ app.get('/avatars/:user_id', requireAuth, (req, res) => {
 // express.static with `extensions: ['html']` will serve /admin and /
 // by mapping them to admin.html / index.html directly, bypassing our auth.
 function sendHtml(req, res, file) {
-  // Inject the current default language into the markup so the client can
-  // render in the right language synchronously (no async fetch, no flash
-  // of English). Set Cache-Control: no-store so the back-forward cache
-  // doesn't restore a stale page with the previous language.
+  // Inject the user's effective language (own preference, else admin default)
+  // into the markup so the client can render in the right language
+  // synchronously (no async fetch, no flash of English). Set
+  // Cache-Control: no-store so the back-forward cache doesn't restore
+  // a stale page with the previous language.
   try {
     const html = fs.readFileSync(path.join(__dirname, 'public', file), 'utf-8');
-    const lang = getDefaultLanguage(db);
+    const userId = req.session && req.session.userId;
+    const lang = getEffectiveLanguage(db, userId);
     const rendered = html
       .replace(/<meta name="blatchat-lang" content="[^"]*">/, `<meta name="blatchat-lang" content="${lang}">`)
       .replace('__BLATCHAT_LANG__', lang);
@@ -156,6 +158,7 @@ app.use('/api/admin', buildAdminRouter(db));
 app.use('/api/admin', buildAdminSettingsRouter(db));
 app.use('/api', buildUploadRouter(db, DATA_DIR));
 app.use('/api/auth', buildAvatarRouter(db, DATA_DIR));
+app.use('/api/auth', buildUserLanguageRouter(db));
 app.use('/api/settings', buildPublicSettingsRouter(db));
 
 // Health

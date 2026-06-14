@@ -13,6 +13,7 @@
   const menuDropdown = document.getElementById('menuDropdown');
   const nickBtn = document.getElementById('nickBtn');
   const pwBtn = document.getElementById('pwBtn');
+  const langBtn = document.getElementById('langBtn');
   const avatarMenuBtn = document.getElementById('avatarMenuBtn');
   const adminLink = document.getElementById('adminLink');
   const logoutBtn = document.getElementById('logoutBtn');
@@ -354,6 +355,57 @@
     else photoInput.value = '';
   });
 
+  // ---- Drag-and-drop file upload ----
+  // Drop a single image onto the messages area to attach it.
+  // We accept image/* files and feed them through the same upload path
+  // as the photo button.
+  const messagesContainer = messagesEl.parentElement;
+  let dragDepth = 0;
+  function isImageDrag(e) {
+    return e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+  }
+  messagesContainer.addEventListener('dragenter', (e) => {
+    if (!isImageDrag(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    messagesEl.classList.add('drag-over');
+  });
+  messagesContainer.addEventListener('dragover', (e) => {
+    if (!isImageDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  messagesContainer.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) messagesEl.classList.remove('drag-over');
+  });
+  messagesContainer.addEventListener('drop', async (e) => {
+    if (!isImageDrag(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    messagesEl.classList.remove('drag-over');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); return; }
+    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast(t('chat.err.image_format'), 'error'); return; }
+    const att = await uploadPhoto(file);
+    if (att) setAttachment(file, att);
+  });
+
+  // Paste-image support: paste a screenshot from clipboard.
+  textInput.addEventListener('paste', async (e) => {
+    if (!e.clipboardData) return;
+    const items = Array.from(e.clipboardData.items || []);
+    const imageItem = items.find((it) => it.kind === 'file' && it.type && it.type.startsWith('image/'));
+    if (!imageItem) return; // let the default paste behaviour handle text
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); return; }
+    const att = await uploadPhoto(file);
+    if (att) setAttachment(file, att);
+  });
+
   attachClear.addEventListener('click', clearAttachment);
 
   function autoResize() {
@@ -429,6 +481,58 @@
       },
     });
     if (r === null) return; // closed
+  });
+
+  // Language picker — set or clear the per-user preference. The server
+  // is the source of truth; the localStorage write in setLang() is just
+  // a synchronous first-paint fallback.
+  langBtn.addEventListener('click', async () => {
+    const current = window.getLang();
+    // Show a small picker: 3 options — auto, English, Russian.
+    const choice = await showModal({
+      title: t('menu.language'),
+      body: `
+        <div class="lang-picker">
+          <button type="button" class="lang-option" data-lang="" data-i18n="menu.language_use_default">Use default</button>
+          <button type="button" class="lang-option" data-lang="en">English</button>
+          <button type="button" class="lang-option" data-lang="ru">Русский</button>
+        </div>
+        <p class="settings-help" style="margin-top:8px" data-i18n="settings.language_help">This sets the language used in menus and labels for all users. Messages you type can still be in any language.</p>
+      `,
+      primaryLabel: t('common.save'),
+      onSubmit: async (data) => {
+        // This modal returns a "choice" via a side-channel; instead we
+        // attach click handlers below and resolve early.
+        return false;
+      },
+    });
+    // The modal's primary button is replaced by a custom 3-way picker.
+    // Hide the default primary button and use the lang-option buttons.
+    document.querySelectorAll('.lang-option').forEach((btn) => {
+      btn.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const lang = btn.dataset.lang || null;
+        try {
+          const r = await fetch('/api/auth/preferred-language', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ language: lang }),
+          });
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          const j = await r.json();
+          // The server returns the effective language (after applying the
+          // override or falling back to the default). Apply immediately.
+          window.setLang(j.language);
+          window.callI18n();
+          toast(t('common.saved'), 'success');
+          // Close the modal by clicking the cancel button.
+          document.getElementById('modalCancel')?.click();
+        } catch (e) {
+          toast(t('common.error'), 'error');
+        }
+      });
+    });
   });
 
   // Nickname change via inline prompt (kept simple)

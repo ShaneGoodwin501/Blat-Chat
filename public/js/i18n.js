@@ -42,12 +42,17 @@
       'menu.profile_photo': 'Profile photo',
       'menu.change_nickname': 'Change nickname',
       'menu.change_password': 'Change password',
+      'menu.language': 'Language',
+      'menu.language_use_default': 'Use default',
       'menu.admin': 'Admin',
       'menu.back_to_chat': 'Back to chat',
       'menu.sign_out': 'Sign out',
       'common.cancel': 'Cancel',
       'common.save': 'Save',
       'common.update': 'Update',
+      'common.loading': 'Loading…',
+      'common.saved': 'Saved',
+      'common.error': 'Error',
 
       // Composer / chat
       'chat.placeholder': 'Message…',
@@ -63,6 +68,7 @@
       'chat.load_older': 'Load older messages',
       'chat.loading_older': 'Loading…',
       'chat.no_more_history': 'No more messages.',
+      'chat.drop_to_attach': 'Drop to attach',
       'chat.delete': 'Delete',
       'chat.delete_confirm': 'Delete this message?',
       'chat.deleted': 'Message deleted',
@@ -220,12 +226,17 @@
       'menu.profile_photo': '\u0424\u043E\u0442\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u044F',
       'menu.change_nickname': '\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043D\u0438\u043A',
       'menu.change_password': '\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u044C',
+      'menu.language': '\u042F\u0437\u044B\u043A',
+      'menu.language_use_default': '\u041F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E',
       'menu.admin': '\u0410\u0434\u043C\u0438\u043D',
       'menu.back_to_chat': '\u041D\u0430\u0437\u0430\u0434 \u0432 \u0447\u0430\u0442',
       'menu.sign_out': '\u0412\u044B\u0439\u0442\u0438',
       'common.cancel': '\u041E\u0442\u043C\u0435\u043D\u0430',
       'common.save': '\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C',
       'common.update': '\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C',
+      'common.loading': '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026',
+      'common.saved': '\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E',
+      'common.error': '\u041E\u0448\u0438\u0431\u043A\u0430',
 
       'chat.placeholder': '\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u2026',
       'chat.send': '\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C',
@@ -240,6 +251,7 @@
       'chat.load_older': '\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0441\u0442\u0430\u0440\u044B\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F',
       'chat.loading_older': '\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026',
       'chat.no_more_history': '\u0411\u043E\u043B\u044C\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0439 \u043D\u0435\u0442.',
+      'chat.drop_to_attach': '\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0444\u0430\u0439\u043B \u0441\u044E\u0434\u0430',
       'chat.delete': '\u0423\u0434\u0430\u043B\u0438\u0442\u044C',
       'chat.delete_confirm': '\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435?',
       'chat.deleted': '\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0443\u0434\u0430\u043B\u0435\u043D\u043E',
@@ -429,6 +441,11 @@
     });
     scope.querySelectorAll('[data-i18n-aria]').forEach((el) => {
       el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
+    });
+    // data-drag-text — translated CSS pseudo-content for the drag overlay.
+    scope.querySelectorAll('[data-drag-text]').forEach((el) => {
+      const key = el.getAttribute('data-drag-text-i18n') || 'chat.drop_to_attach';
+      el.setAttribute('data-drag-text', t(key));
     });
     // <title> in <head> — set document.title.
     const titleEl = scope.querySelector('title[data-i18n]');
