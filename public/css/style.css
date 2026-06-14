@@ -24,15 +24,13 @@
   --success: #2dd4a3;
   --danger: #ff5470;
   --warn: #f7b955;
-  /* Bubbles */
-  /* Other users' messages: bright medium blue (visible, clearly not me). */
-  --bubble-other: #3b82f6;          /* blue-500 */
-  --bubble-other-border: #2563eb;  /* blue-600 */
-  --bubble-other-text: #ffffff;
-  /* Own messages: deep dark navy — the user types the darker color. */
-  --bubble-me-bg: #1e3a8a;          /* blue-900 */
-  --bubble-me-border: #172554;      /* blue-950 */
-  --bubble-me-text: #ffffff;
+  /* Bubbles — both near-bg subtle; alignment is the "this is me" cue. */
+  --bubble-other: rgba(255, 255, 255, 0.04);
+  --bubble-other-border: rgba(255, 255, 255, 0.07);
+  --bubble-other-text: var(--text);
+  --bubble-me-bg: rgba(255, 255, 255, 0.06);   /* one notch brighter than other */
+  --bubble-me-border: rgba(255, 255, 255, 0.10);
+  --bubble-me-text: var(--text);
   /* Geometry */
   --r-sm: 8px;
   --r-md: 12px;
@@ -677,7 +675,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   background: var(--bubble-me-bg);
   color: var(--bubble-me-text);
   border-color: var(--bubble-me-border);
-  box-shadow: 0 6px 18px rgba(30, 58, 138, 0.5);
 }
 .body-wrap .body { white-space: pre-wrap; }
 .body-wrap .body img.attachment {
