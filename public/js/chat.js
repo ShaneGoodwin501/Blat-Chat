@@ -167,6 +167,8 @@
         </div>
       `;
       document.body.appendChild(backdrop);
+      // Wire any password fields inside the modal with the show/hide eye.
+      if (window.wirePasswordReveal) window.wirePasswordReveal(backdrop);
       const form = backdrop.querySelector('#modalForm');
       const err = backdrop.querySelector('#modalErr');
       const cancel = backdrop.querySelector('#modalCancel');
@@ -376,8 +378,15 @@
         });
         if (r.ok) return true;
         const j = await r.json().catch(() => ({}));
-        if (j.error === 'invalid_credentials') throw new Error('Current password is wrong.');
-        throw new Error(j.error || `HTTP ${r.status}`);
+        // Friendly messages — the raw error code isn't useful to a non-admin.
+        if (r.status === 401 && j.error === 'not_authenticated') {
+          throw new Error('Your session expired. Sign in again, then try changing your password.');
+        }
+        if (j.error === 'invalid_credentials') {
+          throw new Error("That doesn't match your current password. Use the eye 👁 to double-check what you typed (the field may have been auto-filled).");
+        }
+        if (j.error === 'password_too_short') throw new Error('New password must be at least 8 characters.');
+        throw new Error(j.error ? `Server: ${j.error}` : `Server returned ${r.status}.`);
       },
     });
     toast('Password updated.', 'success');

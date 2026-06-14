@@ -125,6 +125,37 @@ button.ghost {
 }
 button.ghost:hover { color: var(--text); background: var(--bg-3); }
 
+/* ----- Password input with eye toggle ----- */
+.password-wrap {
+  position: relative;
+  display: block;
+}
+.password-wrap input {
+  padding-right: 44px; /* room for the eye button */
+}
+.password-wrap .eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-dim);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  min-height: 0;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.password-wrap .eye:hover { color: var(--text); background: var(--bg-3); }
+.password-wrap .eye:focus-visible { outline: 2px solid var(--accent-1); outline-offset: 2px; }
+.password-wrap .eye.showing { color: var(--accent-1); }
+.password-wrap .eye svg { display: block; }
+
 /* ---- Login page ---- */
 .login-page {
   min-height: 100vh;

@@ -58,6 +58,7 @@
         </div>
       `;
       document.body.appendChild(backdrop);
+      if (window.wirePasswordReveal) window.wirePasswordReveal(backdrop);
       const form = backdrop.querySelector('#modalForm');
       const err = backdrop.querySelector('#modalErr');
       const cancel = backdrop.querySelector('#modalCancel');
