@@ -1,7 +1,7 @@
 // Auth routes: login, logout, current user.
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { verifyPassword, requireAuth } = require('../auth');
+const { hashPassword, verifyPassword, requireAuth } = require('../auth');
 
 function buildAuthRouter(db) {
   const router = express.Router();
