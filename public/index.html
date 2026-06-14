@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e1116">
+  <title>Blat-Chat</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <h1>Blat-Chat</h1>
+      <span class="spacer"></span>
+      <span class="me" id="meLabel"></span>
+      <button class="link" id="nickBtn" title="Change nickname">Nickname</button>
+      <a class="btn hidden" id="adminLink" href="/admin">Admin</a>
+      <button class="link" id="logoutBtn">Sign out</button>
+    </header>
+
+    <div class="chat">
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <div class="attach-preview hidden" id="attachPreview">
+          <img id="attachThumb" alt="">
+          <span id="attachName"></span>
+          <button type="button" id="attachClear" title="Remove">×</button>
+        </div>
+        <label for="photoInput" class="icon-btn" title="Attach photo">📎</label>
+        <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp">
+        <textarea id="textInput" placeholder="Message…" rows="1" maxlength="4000"></textarea>
+        <button type="submit" class="send-btn">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/chat.js"></script>
+</body>
+</html>
