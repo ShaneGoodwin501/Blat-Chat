@@ -285,7 +285,7 @@
   function clearAttachment() {
     pendingAttachment = null;
     photoInput.value = '';
-    if (pendingThumbUrl) { URL.revokeObjectURL(pendingThumbUrl); pendingThumbUrl = null; }
+    pendingThumbUrl = null; // data URLs are GC'd with the string, no manual revoke
     attachThumb.onerror = null;
     attachPreview.classList.add('hidden');
     attachThumb.removeAttribute('src');
@@ -294,16 +294,25 @@
 
   function setAttachment(file, attachment) {
     pendingAttachment = { file, attachment };
-    if (pendingThumbUrl) URL.revokeObjectURL(pendingThumbUrl); // free the previous preview
-    pendingThumbUrl = URL.createObjectURL(file);
+    pendingThumbUrl = null; // replaced below
     attachThumb.onerror = () => {
       console.warn('[composer] preview failed to decode', file && file.type, file && file.size);
       toast('Browser can\'t preview this image. It will still send if supported.', 'error');
     };
-    attachThumb.src = pendingThumbUrl;
-    // NOTE: do NOT revoke the URL on onload — the browser re-decodes the image on
-    // every reflow/repaint, and revoking here produces a broken-image icon.
-    // The URL is released by clearAttachment() or when a new file replaces it.
+    // Use a data URL (FileReader) instead of URL.createObjectURL — iOS Safari
+    // frequently refuses to decode blob: URLs created from <input type=file>
+    // files, showing a broken-image icon. Inline base64 works reliably.
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingThumbUrl = reader.result; // data:image/...;base64,xxxx
+      attachThumb.src = pendingThumbUrl;
+    };
+    reader.onerror = () => {
+      console.warn('[composer] FileReader failed', file && file.type);
+      toast('Could not read that file.', 'error');
+      clearAttachment();
+    };
+    reader.readAsDataURL(file);
     attachName.textContent = `${file.name} · ${(file.size / 1024).toFixed(0)} KB`;
     attachPreview.classList.remove('hidden');
   }
