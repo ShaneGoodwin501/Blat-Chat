@@ -152,6 +152,12 @@
     // and aligns the column to the right edge via .body-wrap.me and .msg-col.me.
     const isGroupedClass = grouped ? ' grouped' : '';
     const ownClass = isMe ? ' me' : '';
+    // Create the row element up front. (An earlier version of this function
+    // used a `row` variable that was never declared, which made the browser
+    // throw `ReferenceError: row is not defined` on every history event —
+    // meaning the page rendered with ZERO messages even though the server
+    // was sending them.)
+    const row = document.createElement('div');
     row.className = `msg-row${isGroupedClass}${ownClass}`;
     row.dataset.id = m.id;
     row.dataset.userId = m.user_id;
