@@ -404,19 +404,20 @@
     document.title = t(key);
   }
 
-  // Async helper: refresh language from the server. If the server returns a
-  // different value than what was synchronously detected, update everything
-  // (current lang, <html lang>, and the DOM via callI18n).
+  // Async helper: refresh language from the server. The server is the
+  // source of truth for the default language, so we always apply what it
+  // returns — even if it matches the current value (re-applying translations
+  // is cheap and guarantees the DOM is in sync with the DB).
   // Falls back silently to the current value on any error.
   async function loadLang() {
     try {
       const r = await fetch('/api/settings/default-language');
       if (r.ok) {
         const { language } = await r.json();
-        if (language && STRINGS[language] && language !== current) {
-          setLang(language);
-          // Refresh any DOM that was already translated. Note: pages that
-          // call loadLang() before the DOM is ready will get a second pass.
+        if (language && STRINGS[language]) {
+          if (language !== current) setLang(language);
+          // Always re-apply so any DOM added between i18n.js load and
+          // this call (e.g. login.js rebuilt the form) gets translated.
           if (typeof callI18n === 'function') callI18n();
         }
       }
@@ -430,4 +431,14 @@
   window.callI18n = callI18n;
   window.setPageTitle = setPageTitle;
   window.loadLang = loadLang;
+
+  // Apply translations to the static DOM right now, synchronously.
+  // i18n.js is loaded at the end of <body>, so all the static elements
+  // (header, menu, composer, etc.) are in the DOM by the time we run.
+  // This avoids the brief English flash while the async /api/settings
+  // call is in flight. Pages that mount additional UI later can call
+  // callI18n(root) again.
+  try { callI18n(); } catch (e) { /* document may be partially built in edge cases */ }
+  // Set <html lang> for screen readers / CSS :lang() selectors.
+  try { document.documentElement.lang = current; } catch {}
 })();

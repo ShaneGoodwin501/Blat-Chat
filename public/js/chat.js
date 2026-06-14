@@ -468,7 +468,8 @@
           throw new Error(t('chat.password.wrong_current'));
         }
         if (j.error === 'password_too_short') throw new Error(t('chat.password.too_short'));
-        throw new Error(t('misc.server_err', { err: j.error || '' }) || `${t('misc.server_status', { status: r.status })}`);
+        const base = j.error ? t('misc.server_err', { err: j.error }) : t('misc.server_status', { status: r.status });
+        throw new Error(base);
       },
     });
     toast(t('chat.toast.password_updated'), 'success');
