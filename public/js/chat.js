@@ -148,13 +148,14 @@
       </div>
     `;
 
-    // Layout: [avatar] [name+time on top, bubble below]. All messages
-    // (including the user's own) sit on the left, with the avatar on
-    // the far left. The bubble keeps its visual style for the message
-    // body; only the body sits inside the bubble now.
+    // Layout: [avatar] [name+time on top, bubble below]. Other users' messages
+    // sit on the left with their avatar on the far left. The user's own
+    // messages sit on the right (avatar on the right, bubble flush-right);
+    // this is driven by the .me class on msg-row, which flex-reverses the row
+    // and aligns the column to the right edge via .body-wrap.me and .msg-col.me.
     const isGroupedClass = grouped ? ' grouped' : '';
     const ownClass = isMe ? ' me' : '';
-    row.className = `msg-row${isGroupedClass}`;
+    row.className = `msg-row${isGroupedClass}${ownClass}`;
     row.innerHTML = `${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
     messagesEl.appendChild(row);
 
