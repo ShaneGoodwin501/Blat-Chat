@@ -286,6 +286,7 @@
     pendingAttachment = null;
     photoInput.value = '';
     if (pendingThumbUrl) { URL.revokeObjectURL(pendingThumbUrl); pendingThumbUrl = null; }
+    attachThumb.onerror = null;
     attachPreview.classList.add('hidden');
     attachThumb.removeAttribute('src');
     attachName.textContent = '';
@@ -295,6 +296,10 @@
     pendingAttachment = { file, attachment };
     if (pendingThumbUrl) URL.revokeObjectURL(pendingThumbUrl); // free the previous preview
     pendingThumbUrl = URL.createObjectURL(file);
+    attachThumb.onerror = () => {
+      console.warn('[composer] preview failed to decode', file && file.type, file && file.size);
+      toast('Browser can\'t preview this image. It will still send if supported.', 'error');
+    };
     attachThumb.src = pendingThumbUrl;
     // NOTE: do NOT revoke the URL on onload — the browser re-decodes the image on
     // every reflow/repaint, and revoking here produces a broken-image icon.

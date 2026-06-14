@@ -27,7 +27,9 @@
   /* Bubbles */
   --bubble-other: rgba(255, 255, 255, 0.045);
   --bubble-other-border: rgba(255, 255, 255, 0.06);
-  --bubble-me-bg: var(--accent-grad);
+  /* Own bubble: solid dark blue (was the bright accent gradient — too light) */
+  --bubble-me-bg: #1e3a8a;          /* deep blue-900 */
+  --bubble-me-border: #2d4fa3;
   --bubble-me-text: #ffffff;
   /* Geometry */
   --r-sm: 8px;
@@ -660,8 +662,8 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .body-wrap.me {
   background: var(--bubble-me-bg);
   color: var(--bubble-me-text);
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 8px 24px rgba(108, 140, 255, 0.25);
+  border-color: var(--bubble-me-border);
+  box-shadow: 0 6px 18px rgba(30, 58, 138, 0.35);
 }
 .body-wrap .body { white-space: pre-wrap; }
 .body-wrap .body img.attachment {
