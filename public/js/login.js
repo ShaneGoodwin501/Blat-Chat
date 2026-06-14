@@ -12,7 +12,7 @@
     e.preventDefault();
     setError('');
     btn.disabled = true;
-    btn.textContent = 'Signing in…';
+    btn.textContent = t('login.submitting');
     try {
       const r = await fetch('/api/auth/login', {
         method: 'POST',
@@ -27,16 +27,16 @@
         return;
       }
       const data = await r.json().catch(() => ({}));
-      if (data.error === 'invalid_credentials') setError('Invalid username or password.');
-      else if (data.error === 'too_many_attempts') setError('Too many attempts. Try again in a few minutes.');
-      else if (data.error === 'missing_fields') setError('Please enter both username and password.');
-      else setError('Sign-in failed. Please try again.');
+      if (data.error === 'invalid_credentials') setError(t('login.err.invalid_credentials'));
+      else if (data.error === 'too_many_attempts') setError(t('login.err.too_many_attempts'));
+      else if (data.error === 'missing_fields') setError(t('login.err.missing_fields'));
+      else setError(t('login.err.generic'));
       btn.disabled = false;
-      btn.textContent = 'Sign in';
+      btn.textContent = t('login.submit');
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError(t('login.err.network'));
       btn.disabled = false;
-      btn.textContent = 'Sign in';
+      btn.textContent = t('login.submit');
     }
   });
 })();

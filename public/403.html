@@ -4,16 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a0b10">
-  <title>Blat-Chat — Forbidden</title>
+  <title>Blat-Chat &mdash; Forbidden</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <main class="error-page">
     <div>
-      <h1>403</h1>
-      <p>You don't have access to that page.</p>
-      <p><a href="/">Back to chat</a></p>
+      <h1 data-i18n="forbidden.title">403</h1>
+      <p data-i18n="forbidden.body">You don't have access to that page.</p>
+      <p><a href="/" data-i18n="forbidden.back">Back to chat</a></p>
     </div>
   </main>
+  <script src="/js/i18n.js"></script>
+  <script>
+    (async function () {
+      await window.loadLang();
+      window.callI18n();
+    })();
+  </script>
 </body>
 </html>

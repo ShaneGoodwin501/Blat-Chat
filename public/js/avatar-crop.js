@@ -35,16 +35,16 @@
       const fileInput = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', style: 'display:none' });
       const zoomRange = el('input', { type: 'range', min: '0.2', max: '3', step: '0.01', value: '1' });
       const stage = el('div', { class: 'crop-stage', style: `width:${SIZE}px;height:${SIZE}px` });
-      const placeholder = el('div', { class: 'crop-placeholder' }, 'Pick a photo to start');
+      const placeholder = el('div', { class: 'crop-placeholder' }, t('avatar.placeholder'));
       stage.appendChild(placeholder);
 
       const errEl = el('div', { class: 'crop-err' });
       const statusEl = el('div', { class: 'crop-status' });
 
-      const pickBtn = el('button', { type: 'button', class: 'secondary' }, 'Choose photo…');
-      const saveBtn = el('button', { type: 'button' }, 'Save');
-      const removeBtn = el('button', { type: 'button', class: 'secondary danger hidden' }, 'Remove photo');
-      const cancelBtn = el('button', { type: 'button', class: 'secondary' }, 'Close');
+      const pickBtn = el('button', { type: 'button', class: 'secondary' }, t('avatar.choose'));
+      const saveBtn = el('button', { type: 'button' }, t('avatar.save'));
+      const removeBtn = el('button', { type: 'button', class: 'secondary danger hidden' }, t('avatar.remove'));
+      const cancelBtn = el('button', { type: 'button', class: 'secondary' }, t('avatar.close'));
 
       saveBtn.disabled = true;
 
@@ -55,13 +55,13 @@
       });
       cancelBtn.addEventListener('click', () => { cleanup(); resolve(null); });
       removeBtn.addEventListener('click', async () => {
-        if (!confirm('Remove your profile photo? You\'ll go back to the colourful initials.')) return;
+        if (!confirm(t('avatar.remove_confirm'))) return;
         const r = await fetch('/api/auth/avatar', { method: 'DELETE' });
         if (r.ok) {
           cleanup();
           resolve({ removed: true });
         } else {
-          errEl.textContent = 'Could not remove photo. Try again.';
+          errEl.textContent = t('avatar.could_not_remove');
         }
       });
 
@@ -93,7 +93,7 @@
       }
 
       function loadFile(file) {
-        if (file.size > 8 * 1024 * 1024) { errEl.textContent = 'File too large (max 8MB). Pick a smaller image.'; return; }
+        if (file.size > 8 * 1024 * 1024) { errEl.textContent = t('avatar.too_large'); return; }
         errEl.textContent = '';
         // Read enough of the head to detect the ISOBMFF container. 64
         // bytes covers the ftyp box and several compatible-brand slots.
@@ -102,7 +102,7 @@
         reader.onload = () => {
           const brand = sniffIsoBmffBrand(new Uint8Array(reader.result));
           if (brand) {
-            errEl.textContent = `That looks like an iPhone HEIC/HEIF photo (${brand.toUpperCase()}). Most browsers can't decode it directly. In your phone's camera settings, switch to "Most Compatible" (JPG), then re-upload.`;
+            errEl.textContent = t('avatar.heic_hint', { brand: brand.toUpperCase() });
             return;
           }
           tryLoadImage(file);
@@ -122,7 +122,7 @@
             // iOS Safari sometimes "loads" an HEIC image but reports
             // 0x0 dimensions. Treat that as a decode failure.
             if (!tmp.naturalWidth || !tmp.naturalHeight) {
-              errEl.textContent = 'Your browser couldn\'t decode that image. Try a regular JPG or PNG (a screenshot works).';
+              errEl.textContent = t('avatar.cant_decode');
               return;
             }
             imgNatural = { w: tmp.naturalWidth, h: tmp.naturalHeight };
@@ -138,12 +138,12 @@
             fileInput.value = '';
           };
           tmp.onerror = () => {
-            errEl.textContent = 'Your browser couldn\'t decode that image. Try a regular JPG or PNG (a screenshot works).';
+            errEl.textContent = t('avatar.cant_decode');
           };
           tmp.src = dataUrl;
         };
         reader.onerror = () => {
-          errEl.textContent = 'Couldn\'t read the file. Try a different one.';
+          errEl.textContent = t('avatar.cant_read');
         };
         reader.readAsDataURL(file);
       }
@@ -241,18 +241,18 @@
       saveBtn.addEventListener('click', async () => {
         if (!imgEl) return;
         errEl.textContent = '';
-        saveBtn.disabled = true; statusEl.textContent = 'Uploading…'; pickBtn.disabled = true;
+        saveBtn.disabled = true; statusEl.textContent = t('avatar.uploading'); pickBtn.disabled = true;
         try {
           const blob = await exportCroppedBlob();
-          if (!blob) throw new Error('Crop failed');
+          if (!blob) throw new Error(t('avatar.crop_failed'));
           const fd = new FormData();
           fd.append('avatar', blob, 'avatar.jpg');
           const r = await fetch('/api/auth/avatar', { method: 'POST', body: fd });
           if (!r.ok) {
             const j = await r.json().catch(() => ({}));
-            const msg = j.error === 'too_large' ? 'Image too large (server limit).'
-                      : j.error === 'bad_mime' ? 'Server rejected the image format.'
-                      : j.error ? `Server: ${j.error}` : `Server returned ${r.status}.`;
+            const msg = j.error === 'too_large' ? t('avatar.server_too_large')
+                      : j.error === 'bad_mime' ? t('avatar.server_bad_mime')
+                      : j.error ? `${t('misc.server_err', { err: j.error })}` : t('misc.server_status', { status: r.status });
             throw new Error(msg);
           }
           const data = await r.json();
@@ -266,8 +266,8 @@
 
       const backdrop = el('div', { class: 'modal-backdrop' },
         el('div', { class: 'modal avatar-modal', role: 'dialog', 'aria-modal': 'true' },
-          el('h3', null, title || 'Profile photo'),
-          el('div', { class: 'crop-help' }, 'Drag to position · scroll or use the slider to zoom · the circle shows what will be saved'),
+          el('h3', null, title || t('avatar.title')),
+          el('div', { class: 'crop-help' }, t('avatar.help')),
           el('div', { class: 'crop-shell' },
             el('div', { class: 'crop-frame' },
               stage,
@@ -275,7 +275,7 @@
             )
           ),
           el('div', { class: 'crop-zoom' },
-            el('label', { for: 'crop-zoom-range' }, 'Zoom'),
+            el('label', { for: 'crop-zoom-range' }, t('avatar.zoom')),
             zoomRange
           ),
           errEl,

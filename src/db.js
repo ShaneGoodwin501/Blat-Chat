@@ -42,6 +42,16 @@ function init(dataDir) {
       uploaded_by   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
+  // Seed default settings. Idempotent — INSERT OR IGNORE skips existing keys.
+  db.exec(`
+    INSERT OR IGNORE INTO settings (key, value) VALUES ('default_language', 'en');
   `);
 
   // Lightweight migration: add has_avatar to existing installs.

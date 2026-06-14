@@ -31,7 +31,7 @@
       input.type = show ? 'text' : 'password';
       btn.classList.toggle('showing', show);
       btn.innerHTML = show ? EYE_OFF : EYE_OPEN;
-      const label = show ? 'Hide password' : 'Show password';
+      const label = show ? (window.t ? window.t('login.eye.hide') : 'Hide password') : (window.t ? window.t('login.eye.show') : 'Show password');
       btn.title = label;
       btn.setAttribute('aria-label', label);
       // Keep the caret at the end after the type swap (some browsers reset it)

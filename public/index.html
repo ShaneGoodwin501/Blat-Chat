@@ -5,29 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b10">
   <title>Blat-Chat</title>
-  <link rel="stylesheet" href="/css/style.css?v=10">
+  <link rel="stylesheet" href="/css/style.css?v=11">
 </head>
 <body>
   <div class="app">
     <header class="bar">
-      <h1><span class="dot"></span> Blat-Chat</h1>
+      <h1><span class="dot"></span> <span data-i18n="app.brand">Blat-Chat</span></h1>
       <span class="spacer"></span>
       <span class="me">
-        <span class="me-greeting">Signed in as</span>
-        <span class="me-name" id="meLabel">…</span>
+        <span class="me-greeting" data-i18n="header.signed_in_as">Signed in as</span>
+        <span class="me-name" id="meLabel">&hellip;</span>
       </span>
-      <button class="menu-btn" id="menuBtn" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" data-i18n-aria="header.menu" title="Menu" aria-haspopup="true" aria-expanded="false">
         <span class="bar"></span>
         <span class="bar"></span>
         <span class="bar"></span>
       </button>
       <div class="dropdown hidden" id="menuDropdown" role="menu">
-        <button id="avatarMenuBtn" role="menuitem" type="button"><span class="ico">🖼</span> Profile photo</button>
-        <button id="nickBtn" role="menuitem" type="button"><span class="ico">✎</span> Change nickname</button>
-        <button id="pwBtn" role="menuitem" type="button"><span class="ico">🔒</span> Change password</button>
-        <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">⚙</span> Admin</a>
+        <button id="avatarMenuBtn" role="menuitem" type="button"><span class="ico">&#x1F5BC;</span> <span data-i18n="menu.profile_photo">Profile photo</span></button>
+        <button id="nickBtn" role="menuitem" type="button"><span class="ico">&#x270E;</span> <span data-i18n="menu.change_nickname">Change nickname</span></button>
+        <button id="pwBtn" role="menuitem" type="button"><span class="ico">&#x1F512;</span> <span data-i18n="menu.change_password">Change password</span></button>
+        <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">&#x2699;</span> <span data-i18n="menu.admin">Admin</span></a>
         <div class="divider"></div>
-        <button id="logoutBtn" class="danger" role="menuitem" type="button"><span class="ico">⎋</span> Sign out</button>
+        <button id="logoutBtn" class="danger" role="menuitem" type="button"><span class="ico">&#x238B;</span> <span data-i18n="menu.sign_out">Sign out</span></button>
       </div>
     </header>
 
@@ -37,26 +37,34 @@
         <div class="attach-preview hidden" id="attachPreview">
           <img id="attachThumb" alt="">
           <span class="name" id="attachName"></span>
-          <button type="button" id="attachClear" title="Remove">×</button>
+          <button type="button" id="attachClear" data-i18n-aria="chat.attach_clear" title="Remove">&times;</button>
         </div>
-        <label for="photoInput" class="icon-btn" title="Attach photo" aria-label="Attach photo">📎</label>
+        <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
         <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp">
-        <textarea id="textInput" placeholder="Message…" rows="1" maxlength="4000" aria-label="Message"></textarea>
-        <button type="submit" class="send-btn" aria-label="Send">➤</button>
+        <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
+        <button type="submit" class="send-btn" data-i18n-aria="chat.send" aria-label="Send">&#x27A4;</button>
       </form>
     </div>
   </div>
 
   <div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer">
-    <button class="lightbox-close" id="lightboxClose" aria-label="Close" title="Close (Esc)">✕</button>
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close" title="Close (Esc)">&times;</button>
     <img id="lightboxImg" alt="">
   </div>
 
-  <div class="toast-stack" id="toastStack"></div>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/password-reveal.js"></script>
   <script src="/js/avatar-crop.js"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=6"></script>
+  <script src="/js/chat.js?v=7"></script>
+  <script>
+    // Apply language as soon as the strings are in scope.
+    (async function () {
+      await window.loadLang();
+      window.callI18n();
+    })();
+  </script>
 </body>
 </html>

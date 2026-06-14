@@ -17,6 +17,7 @@ const { buildChatRouter } = require('./src/routes/chat');
 const { buildAdminRouter } = require('./src/routes/admin');
 const { buildUploadRouter } = require('./src/routes/upload');
 const { buildAvatarRouter } = require('./src/routes/avatar');
+const { buildPublicSettingsRouter, buildAdminSettingsRouter } = require('./src/routes/settings');
 const { attachSockets } = require('./src/sockets');
 
 // ---- Config ----
@@ -128,8 +129,10 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use('/api/auth', buildAuthRouter(db));
 app.use('/api', buildChatRouter(db));
 app.use('/api/admin', buildAdminRouter(db));
+app.use('/api/admin', buildAdminSettingsRouter(db));
 app.use('/api', buildUploadRouter(db, DATA_DIR));
 app.use('/api/auth', buildAvatarRouter(db, DATA_DIR));
+app.use('/api/settings', buildPublicSettingsRouter(db));
 
 // Health
 app.get('/healthz', (req, res) => res.json({ ok: true, ts: Date.now() }));

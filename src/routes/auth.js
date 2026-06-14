@@ -2,6 +2,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const { hashPassword, verifyPassword, requireAuth } = require('../auth');
+const { getDefaultLanguage } = require('./settings');
 
 function buildAuthRouter(db) {
   const router = express.Router();
@@ -27,7 +28,7 @@ function buildAuthRouter(db) {
     req.session.username = user.username;
     req.session.role = user.role;
     req.session.displayName = user.display_name;
-    res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, has_avatar: !!user.has_avatar } });
+    res.json({ ok: true, user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, has_avatar: !!user.has_avatar }, default_language: getDefaultLanguage(db) });
   });
 
   router.post('/logout', (req, res) => {
@@ -37,7 +38,7 @@ function buildAuthRouter(db) {
   router.get('/me', requireAuth, (req, res) => {
     const user = db.prepare('SELECT id, username, display_name, role, active, has_avatar FROM users WHERE id = ?').get(req.session.userId);
     if (!user) return res.status(401).json({ error: 'not_authenticated' });
-    res.json({ user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, active: user.active, has_avatar: !!user.has_avatar } });
+    res.json({ user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, active: user.active, has_avatar: !!user.has_avatar }, default_language: getDefaultLanguage(db) });
   });
 
   // POST /api/auth/password — change your own password.

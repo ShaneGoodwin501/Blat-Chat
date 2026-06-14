@@ -81,9 +81,9 @@
     const d = new Date(iso.replace(' ', 'T') + 'Z'); // treat DB time as UTC
     if (isNaN(d.getTime())) return iso.slice(0, 10);
     const sameDay = d.toDateString() === today.toDateString();
-    if (sameDay) return 'Today';
+    if (sameDay) return t('chat.day.today');
     const y = new Date(today); y.setDate(today.getDate() - 1);
-    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    if (d.toDateString() === y.toDateString()) return t('chat.day.yesterday');
     return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   }
   function timeOf(iso) {
@@ -293,7 +293,7 @@
     pendingThumbUrl = null; // replaced below
     attachThumb.onerror = () => {
       console.warn('[composer] preview failed to decode', file && file.type, file && file.size);
-      toast('Browser can\'t preview this image. It will still send if supported.', 'error');
+      toast(t('chat.err.preview_failed'), 'error');
     };
     // Use a data URL (FileReader) instead of URL.createObjectURL — iOS Safari
     // frequently refuses to decode blob: URLs created from <input type=file>
@@ -305,7 +305,7 @@
     };
     reader.onerror = () => {
       console.warn('[composer] FileReader failed', file && file.type);
-      toast('Could not read that file.', 'error');
+      toast(t('chat.err.read_failed'), 'error');
       clearAttachment();
     };
     reader.readAsDataURL(file);
@@ -320,9 +320,9 @@
     if (r.status === 401) { window.location.href = '/login'; return null; }
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      if (err.error === 'bad_mime') toast('Only JPG, PNG, GIF, WebP allowed.', 'error');
-      else if (err.error === 'too_large') toast('Image too large (max 5MB).', 'error');
-      else toast('Upload failed.', 'error');
+      if (err.error === 'bad_mime') toast(t('chat.err.image_format'), 'error');
+      else if (err.error === 'too_large') toast(t('chat.err.image_too_large'), 'error');
+      else toast(t('chat.err.upload_failed'), 'error');
       return null;
     }
     const data = await r.json();
@@ -332,8 +332,8 @@
   photoInput.addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast('Image too large (max 5MB).', 'error'); photoInput.value = ''; return; }
-    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast('Only JPG, PNG, GIF, WebP allowed.', 'error'); photoInput.value = ''; return; }
+    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); photoInput.value = ''; return; }
+    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast(t('chat.err.image_format'), 'error'); photoInput.value = ''; return; }
     const att = await uploadPhoto(file);
     if (att) setAttachment(file, att);
     else photoInput.value = '';
@@ -357,7 +357,7 @@
     e.preventDefault();
     const text = textInput.value.trim();
     if (!text && !pendingAttachment) return;
-    if (!socket || !socket.connected) { toast('Disconnected. Reconnecting…', 'error'); return; }
+    if (!socket || !socket.connected) { toast(t('chat.err.disconnected'), 'error'); return; }
     socket.emit('message', {
       body: text,
       attachment_id: pendingAttachment ? pendingAttachment.attachment.id : null,
@@ -367,9 +367,9 @@
         autoResize();
         clearAttachment();
       } else if (ack && ack.error) {
-        if (ack.error === 'too_long') toast('Message too long.', 'error');
-        else if (ack.error === 'bad_attachment') toast('Attachment expired. Re-attach and try again.', 'error');
-        else toast('Could not send. Try again.', 'error');
+        if (ack.error === 'too_long') toast(t('chat.err.too_long'), 'error');
+        else if (ack.error === 'bad_attachment') toast(t('chat.err.bad_attachment'), 'error');
+        else toast(t('chat.err.could_not_send'), 'error');
       }
     });
   });
@@ -377,15 +377,15 @@
   // Profile photo: open the cropper
   avatarMenuBtn.addEventListener('click', async () => {
     if (typeof window.openAvatarCropper !== 'function') {
-      toast('Photo uploader not loaded. Refresh and try again.', 'error');
+      toast(t('chat.err.avatar_not_loaded'), 'error');
       return;
     }
     const r = await window.openAvatarCropper({
-      title: 'Profile photo',
+      title: t('avatar.title'),
       onSaved: (url) => {
         myAvatarVersion = Date.now();
         me.has_avatar = 1;
-        toast('Profile photo updated.', 'success');
+        toast(t('chat.toast.profile_updated'), 'success');
         if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: true });
         // Force every already-rendered avatar image of mine to refresh
         document.querySelectorAll('img.avatar-img').forEach((im) => {
@@ -401,7 +401,7 @@
       onRemoved: () => {
         me.has_avatar = 0;
         myAvatarVersion = Date.now();
-        toast('Photo removed. Back to colourful initials.', 'success');
+        toast(t('chat.toast.profile_removed'), 'success');
         if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: false });
         document.querySelectorAll('img.avatar-img').forEach((im) => {
           // We can't tell ours apart from others by URL alone (cache-bust
@@ -419,40 +419,40 @@
   // Nickname change via inline prompt (kept simple)
   nickBtn.addEventListener('click', () => {
     const cur = me ? me.display_name : '';
-    const next = window.prompt('New nickname:', cur || '');
+    const next = window.prompt(t('chat.prompt.nickname'), cur || '');
     if (next == null) return;
     if (!socket) return;
     socket.emit('set_display_name', next, (ack) => {
       if (ack && ack.ok) {
         me.display_name = ack.display_name;
         meLabel.textContent = ack.display_name;
-        toast('Nickname updated.', 'success');
-      } else toast('Could not change nickname.', 'error');
+        toast(t('chat.toast.nickname_updated'), 'success');
+      } else toast(t('chat.toast.nickname_failed'), 'error');
     });
   });
 
   // Password change via modal
   pwBtn.addEventListener('click', async () => {
     await showModal({
-      title: 'Change your password',
+      title: t('menu.change_password'),
       body: `
         <div class="form-row">
-          <label for="pw_old">Current</label>
+          <label for="pw_old">${escapeHtml(t('chat.password.current'))}</label>
           <input id="pw_old" name="old_password" type="password" required autocomplete="current-password">
         </div>
         <div class="form-row">
-          <label for="pw_new1">New</label>
+          <label for="pw_new1">${escapeHtml(t('chat.password.new'))}</label>
           <input id="pw_new1" name="new_password" type="password" required minlength="8" autocomplete="new-password">
         </div>
         <div class="form-row">
-          <label for="pw_new2">Confirm</label>
+          <label for="pw_new2">${escapeHtml(t('chat.password.confirm'))}</label>
           <input id="pw_new2" name="confirm" type="password" required minlength="8" autocomplete="new-password">
         </div>
       `,
-      primaryLabel: 'Update',
+      primaryLabel: t('common.update'),
       onSubmit: async (data) => {
-        if (data.new_password !== data.confirm) throw new Error('New passwords do not match.');
-        if (data.new_password.length < 8) throw new Error('New password must be at least 8 characters.');
+        if (data.new_password !== data.confirm) throw new Error(t('chat.password.mismatch'));
+        if (data.new_password.length < 8) throw new Error(t('chat.password.too_short'));
         const r = await fetch('/api/auth/password', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -462,16 +462,16 @@
         const j = await r.json().catch(() => ({}));
         // Friendly messages — the raw error code isn't useful to a non-admin.
         if (r.status === 401 && j.error === 'not_authenticated') {
-          throw new Error('Your session expired. Sign in again, then try changing your password.');
+          throw new Error(t('chat.password.session_expired'));
         }
         if (j.error === 'invalid_credentials') {
-          throw new Error("That doesn't match your current password. Use the eye 👁 to double-check what you typed (the field may have been auto-filled).");
+          throw new Error(t('chat.password.wrong_current'));
         }
-        if (j.error === 'password_too_short') throw new Error('New password must be at least 8 characters.');
-        throw new Error(j.error ? `Server: ${j.error}` : `Server returned ${r.status}.`);
+        if (j.error === 'password_too_short') throw new Error(t('chat.password.too_short'));
+        throw new Error(t('misc.server_err', { err: j.error || '' }) || `${t('misc.server_status', { status: r.status })}`);
       },
     });
-    toast('Password updated.', 'success');
+    toast(t('chat.toast.password_updated'), 'success');
   });
 
   logoutBtn.addEventListener('click', async () => {
@@ -482,7 +482,7 @@
   function connect() {
     socket = io({ withCredentials: true });
     socket.on('connect', () => { /* noop */ });
-    socket.on('disconnect', () => toast('Disconnected. Reconnecting…', 'error'));
+    socket.on('disconnect', () => toast(t('chat.err.disconnected'), 'error'));
     socket.on('history', (rows) => {
       knownMessageIds.clear();
       messagesEl.innerHTML = '';

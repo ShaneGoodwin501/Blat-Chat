@@ -9,6 +9,7 @@
   const menuDropdown = document.getElementById('menuDropdown');
   const logoutBtn = document.getElementById('logoutBtn');
   const toastStack = document.getElementById('toastStack');
+  const langBtns = document.querySelectorAll('.lang-btn');
 
   function escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -40,7 +41,7 @@
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
     return data;
   }
-  function showModal({ title, body, primaryLabel = 'Save', onSubmit }) {
+  function showModal({ title, body, primaryLabel, onSubmit }) {
     return new Promise((resolve) => {
       const backdrop = document.createElement('div');
       backdrop.className = 'modal-backdrop';
@@ -51,7 +52,7 @@
             <div>${body}</div>
             <div class="err" id="modalErr"></div>
             <div class="form-actions">
-              <button type="button" class="secondary" id="modalCancel">Cancel</button>
+              <button type="button" class="secondary" id="modalCancel">${escapeHtml(t('common.cancel'))}</button>
               <button type="submit">${escapeHtml(primaryLabel)}</button>
             </div>
           </form>
@@ -85,11 +86,11 @@
 
   function render(users) {
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-faint)">No users yet.</td></tr>';
-      usersCount.textContent = '0 users';
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--text-faint)">${escapeHtml(t('admin.no_users'))}</td></tr>`;
+      usersCount.textContent = t('admin.users_count_one', { n: 0 });
       return;
     }
-    usersCount.textContent = `${users.length} user${users.length === 1 ? '' : 's'}`;
+    usersCount.textContent = t(users.length === 1 ? 'admin.users_count_one' : 'admin.users_count_other', { n: users.length });
     tbody.innerHTML = users.map(u => {
       const initial = initialsOf(u.display_name);
       const color = avatarColor(String(u.id) + ':' + u.display_name);
@@ -100,20 +101,20 @@
               <div class="avatar" style="background:${color};width:30px;height:30px;font-size:11px">${escapeHtml(initial)}</div>
               <div>
                 <div style="font-weight:500">${escapeHtml(u.display_name)}</div>
-                <div style="font-size:12px;color:var(--text-faint)">@${escapeHtml(u.username)} · id ${u.id}</div>
+                <div style="font-size:12px;color:var(--text-faint)">@${escapeHtml(u.username)} &middot; id ${u.id}</div>
               </div>
             </div>
           </td>
-          <td><span class="pill ${u.role}">${u.role}</span></td>
-          <td>${u.active ? '<span class="pill on">active</span>' : '<span class="pill off">disabled</span>'}</td>
+          <td><span class="pill ${u.role}">${escapeHtml(t(u.role === 'admin' ? 'admin.role.admin' : 'admin.role.user'))}</span></td>
+          <td>${u.active ? `<span class="pill on">${escapeHtml(t('admin.pill.active'))}</span>` : `<span class="pill off">${escapeHtml(t('admin.pill.disabled'))}</span>`}</td>
           <td style="color:var(--text-dim);font-size:12px">${escapeHtml((u.created_at || '').slice(0, 10))}</td>
           <td>
             <div class="row-actions" style="justify-content:flex-end">
-              <button data-act="rename" class="ghost">Rename</button>
-              <button data-act="reset"  class="ghost">Reset PW</button>
-              <button data-act="role"   class="ghost">${u.role === 'admin' ? 'Demote' : 'Promote'}</button>
-              <button data-act="toggle" class="ghost">${u.active ? 'Disable' : 'Enable'}</button>
-              <button data-act="delete" class="danger">Delete</button>
+              <button data-act="rename" class="ghost">${escapeHtml(t('admin.act.rename'))}</button>
+              <button data-act="reset"  class="ghost">${escapeHtml(t('admin.act.reset_pw'))}</button>
+              <button data-act="role"   class="ghost">${escapeHtml(t(u.role === 'admin' ? 'admin.act.demote' : 'admin.act.promote'))}</button>
+              <button data-act="toggle" class="ghost">${escapeHtml(t(u.active ? 'admin.act.disable' : 'admin.act.enable'))}</button>
+              <button data-act="delete" class="danger">${escapeHtml(t('admin.act.delete'))}</button>
             </div>
           </td>
         </tr>
@@ -126,34 +127,34 @@
       const data = await api('/api/admin/users');
       if (data) render(data.users);
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Failed to load: ${escapeHtml(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">${escapeHtml(t('admin.err.load_failed', { err: e.message }))}</td></tr>`;
     }
   }
   async function patch(id, body) {
     try { await api(`/api/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }); await load(); }
-    catch (e) { toast('Update failed: ' + e.message, 'error'); }
+    catch (e) { toast(t('admin.toast.update_failed', { err: e.message }), 'error'); }
   }
   async function del(id) {
     await showModal({
-      title: 'Delete user?',
+      title: t('admin.modal.delete.title'),
       body: `
-        <p style="color:var(--text-dim);margin:0 0 12px">This permanently removes the user and all their messages. Cannot be undone.</p>
-        <div class="form-row"><label>Type <strong>DELETE</strong> to confirm</label><input name="confirm" required pattern="DELETE"></div>
+        <p style="color:var(--text-dim);margin:0 0 12px">${escapeHtml(t('admin.modal.delete.body'))}</p>
+        <div class="form-row"><label>${t('admin.modal.delete.confirm')}</label><input name="confirm" required pattern="DELETE"></div>
       `,
-      primaryLabel: 'Delete',
+      primaryLabel: t('admin.modal.delete.primary'),
       onSubmit: async (data) => {
-        if (data.confirm !== 'DELETE') throw new Error('Type DELETE to confirm.');
+        if (data.confirm !== 'DELETE') throw new Error(t('admin.modal.delete.err_mismatch'));
         try {
           await api(`/api/admin/users/${id}`, { method: 'DELETE' });
           return true;
         } catch (e) {
-          if (e.message === 'cannot_delete_self') throw new Error('You cannot delete your own account here.');
-          if (e.message === 'last_admin') throw new Error('Cannot delete the only remaining admin.');
-          throw new Error(e.message || 'Delete failed.');
+          if (e.message === 'cannot_delete_self') throw new Error(t('admin.modal.delete.err_self'));
+          if (e.message === 'last_admin') throw new Error(t('admin.modal.delete.err_last_admin'));
+          throw new Error(t('admin.modal.delete.err_generic'));
         }
       },
     });
-    toast('User deleted.', 'success');
+    toast(t('admin.toast.deleted'), 'success');
     await load();
   }
 
@@ -169,15 +170,15 @@
     try {
       await api('/api/admin/users', { method: 'POST', body: JSON.stringify(body) });
       addForm.reset();
-      toast(`User '${body.username}' created.`, 'success');
+      toast(t('admin.toast.user_created', { name: body.username }), 'success');
       await load();
     } catch (e) {
       const map = {
-        bad_username: 'Username must be 3-32 letters/digits/_.-',
-        password_too_short: 'Password must be at least 8 characters.',
-        username_taken: 'That username is already in use.',
+        bad_username: t('admin.err.bad_username'),
+        password_too_short: t('admin.err.password_too_short'),
+        username_taken: t('admin.err.username_taken'),
       };
-      addErr.textContent = map[e.message] || ('Failed: ' + e.message);
+      addErr.textContent = map[e.message] || t('admin.toast.create_failed', { err: e.message });
     }
   });
 
@@ -190,52 +191,52 @@
     const act = btn.dataset.act;
     if (act === 'rename') {
       const r = await showModal({
-        title: 'Rename user',
-        body: `<div class="form-row"><label>Display name</label><input name="display_name" required maxlength="32"></div>`,
-        primaryLabel: 'Save',
+        title: t('admin.modal.rename.title'),
+        body: `<div class="form-row"><label>${escapeHtml(t('admin.modal.rename.label'))}</label><input name="display_name" required maxlength="32"></div>`,
+        primaryLabel: t('common.save'),
         onSubmit: async (data) => { await patch(id, { display_name: data.display_name.trim() }); return true; },
       });
-      if (r) toast('Renamed.', 'success');
+      if (r) toast(t('admin.toast.renamed'), 'success');
     } else if (act === 'reset') {
       const r = await showModal({
-        title: 'Reset password',
-        body: `<div class="form-row"><label>New password (min 8)</label><input name="password" type="password" required minlength="8" autocomplete="new-password"></div>`,
-        primaryLabel: 'Set password',
+        title: t('admin.modal.reset.title'),
+        body: `<div class="form-row"><label>${escapeHtml(t('admin.modal.reset.label'))}</label><input name="password" type="password" required minlength="8" autocomplete="new-password"></div>`,
+        primaryLabel: t('admin.modal.reset.primary'),
         onSubmit: async (data) => {
-          if (data.password.length < 8) throw new Error('Min 8 characters.');
+          if (data.password.length < 8) throw new Error(t('admin.modal.reset.err_short'));
           await patch(id, { password: data.password });
           return true;
         },
       });
-      if (r) toast('Password reset.', 'success');
+      if (r) toast(t('admin.toast.password_reset'), 'success');
     } else if (act === 'role') {
       const cur = tr.querySelector('.pill').textContent.trim();
-      const next = cur === 'admin' ? 'user' : 'admin';
+      const next = cur === t('admin.role.admin') ? 'user' : 'admin';
       if (next === 'user') {
         await showModal({
-          title: 'Demote to user?',
-          body: `<p style="color:var(--text-dim);margin:0 0 8px">They'll keep their account but lose admin access (and the Admin link in the header).</p>`,
-          primaryLabel: 'Demote',
+          title: t('admin.modal.demote.title'),
+          body: `<p style="color:var(--text-dim);margin:0 0 8px">${escapeHtml(t('admin.modal.demote.body'))}</p>`,
+          primaryLabel: t('admin.modal.demote.primary'),
           onSubmit: async () => { await patch(id, { role: 'user' }); return true; },
         });
-        toast('Demoted.', 'success');
+        toast(t('admin.toast.demoted'), 'success');
       } else {
         await patch(id, { role: 'admin' });
-        toast('Promoted to admin.', 'success');
+        toast(t('admin.toast.promoted'), 'success');
       }
     } else if (act === 'toggle') {
-      const isActive = tr.querySelectorAll('.pill')[1]?.textContent.trim() === 'active';
+      const isActive = tr.querySelectorAll('.pill')[1]?.textContent.trim() === t('admin.pill.active');
       if (isActive) {
         await showModal({
-          title: 'Disable user?',
-          body: `<p style="color:var(--text-dim);margin:0 0 8px">They'll be signed out and unable to log in. Their messages stay. You can re-enable later.</p>`,
-          primaryLabel: 'Disable',
+          title: t('admin.modal.disable.title'),
+          body: `<p style="color:var(--text-dim);margin:0 0 8px">${escapeHtml(t('admin.modal.disable.body'))}</p>`,
+          primaryLabel: t('admin.modal.disable.primary'),
           onSubmit: async () => { await patch(id, { active: false }); return true; },
         });
-        toast('Disabled.', 'success');
+        toast(t('admin.toast.disabled'), 'success');
       } else {
         await patch(id, { active: true });
-        toast('Enabled.', 'success');
+        toast(t('admin.toast.enabled'), 'success');
       }
     } else if (act === 'delete') {
       await del(id);
@@ -266,6 +267,36 @@
     try { await fetch('/api/auth/logout', { method: 'POST' }); } catch {}
     window.location.href = '/login';
   });
+
+  // ---- Language toggle ----
+  function markActiveLang(lang) {
+    langBtns.forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
+  }
+  langBtns.forEach((b) => {
+    b.addEventListener('click', async () => {
+      const lang = b.dataset.lang;
+      try {
+        const r = await fetch('/api/admin/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ default_language: lang }),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        window.setLang(lang);
+        window.callI18n();
+        markActiveLang(lang);
+        toast(t('settings.saved'), 'success');
+        // Re-render the table so the language switch is reflected in
+        // role/active pills and action buttons.
+        await load();
+      } catch (e) {
+        toast(t('admin.toast.update_failed', { err: e.message }), 'error');
+      }
+    });
+  });
+
+  // Highlight the current language as the default.
+  markActiveLang(window.getLang());
 
   load();
 })();

@@ -4,53 +4,69 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b10">
-  <title>Blat-Chat — Admin</title>
+  <title>Blat-Chat &mdash; Admin</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <div class="app">
     <header class="bar">
-      <h1><span class="dot"></span> Admin</h1>
+      <h1><span class="dot"></span> <span data-i18n="admin.title">Admin</span></h1>
       <span class="spacer"></span>
-      <button class="menu-btn" id="menuBtn" aria-label="Menu" title="Menu" aria-haspopup="true" aria-expanded="false">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" data-i18n-aria="header.menu" title="Menu" aria-haspopup="true" aria-expanded="false">
         <span class="bar"></span>
         <span class="bar"></span>
         <span class="bar"></span>
       </button>
       <div class="dropdown hidden" id="menuDropdown" role="menu">
-        <a href="/" role="menuitem"><span class="ico">💬</span> Back to chat</a>
+        <a href="/" role="menuitem"><span class="ico">&#x1F4AC;</span> <span data-i18n="menu.back_to_chat">Back to chat</span></a>
         <div class="divider"></div>
-        <button id="logoutBtn" class="danger" role="menuitem"><span class="ico">⎋</span> Sign out</button>
+        <button id="logoutBtn" class="danger" role="menuitem"><span class="ico">&#x238B;</span> <span data-i18n="menu.sign_out">Sign out</span></button>
       </div>
     </header>
 
     <main class="admin">
       <div class="card">
         <div class="card-header">
-          <h2>Add user</h2>
+          <h2 data-i18n="settings.title">Settings</h2>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-label" data-i18n="settings.language">Language</div>
+            <div class="settings-help" data-i18n="settings.language_help">This sets the language used in menus and labels for all users. Messages you type can still be in any language.</div>
+          </div>
+          <div class="lang-toggle" role="group" aria-label="Language">
+            <button type="button" class="lang-btn" data-lang="en" data-i18n="settings.lang.en">English</button>
+            <button type="button" class="lang-btn" data-lang="ru" data-i18n="settings.lang.ru">&#x0420;&#x0443;&#x0441;&#x0441;&#x043A;&#x0438;&#x0439;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 data-i18n="admin.add_user">Add user</h2>
         </div>
         <form id="addUserForm" class="form-grid" autocomplete="off">
           <div class="row">
-            <label for="nu_username">Username</label>
+            <label for="nu_username" data-i18n="login.username">Username</label>
             <input id="nu_username" name="username" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]+" autocapitalize="none" spellcheck="false">
           </div>
           <div class="row">
-            <label for="nu_display">Display name</label>
+            <label for="nu_display" data-i18n="admin.modal.rename.label">Display name</label>
             <input id="nu_display" name="display_name" maxlength="32" placeholder="(defaults to username)">
           </div>
           <div class="row">
-            <label for="nu_password">Password</label>
+            <label for="nu_password" data-i18n="login.password">Password</label>
             <input id="nu_password" name="password" type="password" required minlength="8" autocomplete="new-password">
           </div>
           <div class="row">
-            <label for="nu_role">Role</label>
+            <label for="nu_role" data-i18n="admin.col.role">Role</label>
             <select id="nu_role" name="role">
-              <option value="user" selected>user</option>
-              <option value="admin">admin</option>
+              <option value="user" selected data-i18n="admin.role.user">user</option>
+              <option value="admin" data-i18n="admin.role.admin">admin</option>
             </select>
           </div>
           <div class="form-actions">
-            <button type="submit">Create</button>
+            <button type="submit" data-i18n="admin.add_user">Create</button>
           </div>
           <div class="err" id="addUserErr"></div>
         </form>
@@ -58,21 +74,21 @@
 
       <div class="card">
         <div class="card-header">
-          <h2>Users</h2>
-          <span class="count" id="usersCount">—</span>
+          <h2 data-i18n="admin.users">Users</h2>
+          <span class="count" id="usersCount">&mdash;</span>
         </div>
         <table>
           <thead>
             <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Active</th>
-              <th>Created</th>
-              <th style="text-align:right">Actions</th>
+              <th data-i18n="admin.col.user">User</th>
+              <th data-i18n="admin.col.role">Role</th>
+              <th data-i18n="admin.col.active">Active</th>
+              <th data-i18n="admin.col.created">Created</th>
+              <th style="text-align:right" data-i18n="admin.col.actions">Actions</th>
             </tr>
           </thead>
           <tbody id="usersBody">
-            <tr><td colspan="5" style="color:var(--text-faint)">Loading…</td></tr>
+            <tr><td colspan="5" style="color:var(--text-faint)" data-i18n="admin.loading">Loading&hellip;</td></tr>
           </tbody>
         </table>
       </div>
@@ -80,7 +96,14 @@
   </div>
 
   <div class="toast-stack" id="toastStack"></div>
+  <script src="/js/i18n.js"></script>
   <script src="/js/password-reveal.js"></script>
   <script src="/js/admin.js"></script>
+  <script>
+    (async function () {
+      await window.loadLang();
+      window.callI18n();
+    })();
+  </script>
 </body>
 </html>
