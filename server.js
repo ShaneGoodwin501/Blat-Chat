@@ -17,7 +17,7 @@ const { buildChatRouter } = require('./src/routes/chat');
 const { buildAdminRouter } = require('./src/routes/admin');
 const { buildUploadRouter } = require('./src/routes/upload');
 const { buildAvatarRouter } = require('./src/routes/avatar');
-const { buildPublicSettingsRouter, buildAdminSettingsRouter } = require('./src/routes/settings');
+const { buildPublicSettingsRouter, buildAdminSettingsRouter, getDefaultLanguage } = require('./src/routes/settings');
 const { attachSockets } = require('./src/sockets');
 
 // ---- Config ----
@@ -111,15 +111,35 @@ app.get('/avatars/:user_id', (req, res) => {
 // HTML routes FIRST — must run before the static middleware, otherwise
 // express.static with `extensions: ['html']` will serve /admin and /
 // by mapping them to admin.html / index.html directly, bypassing our auth.
-app.get('/', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+function sendHtml(req, res, file) {
+  // Inject the current default language into the markup so the client can
+  // render in the right language synchronously (no async fetch, no flash
+  // of English). Set Cache-Control: no-store so the back-forward cache
+  // doesn't restore a stale page with the previous language.
+  try {
+    const html = fs.readFileSync(path.join(__dirname, 'public', file), 'utf-8');
+    const lang = getDefaultLanguage(db);
+    const rendered = html
+      .replace(/<meta name="blatchat-lang" content="[^"]*">/, `<meta name="blatchat-lang" content="${lang}">`)
+      .replace('__BLATCHAT_LANG__', lang);
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.type('html').send(rendered);
+  } catch (e) {
+    res.status(500).end('Failed to render page.');
+  }
+}
+
+app.get('/', requireAuth, (req, res) => sendHtml(req, res, 'index.html'));
 app.get('/login', (req, res) => {
   if (req.session?.userId) return res.redirect('/');
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+  sendHtml(req, res, 'login.html');
 });
 app.get('/admin', requireAuth, (req, res) => {
   if (req.session?.role !== 'admin') return res.status(403).sendFile(path.join(__dirname, 'public', '403.html'));
-  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+  sendHtml(req, res, 'admin.html');
 });
+app.get('/403', (req, res) => sendHtml(req, res, '403.html'));
 
 // Static frontend assets (CSS, JS, images). `index: false` + no extensions
 // so it only serves files that actually exist under /public/.

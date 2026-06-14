@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0b10">
-  <title>Blat-Chat &mdash; Sign in</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title data-i18n="app.title_login">FAMILY-CHAT &mdash; Sign in</title>
+  <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
+  <link rel="stylesheet" href="/css/style.css?v=12">
 </head>
 <body>
   <main class="login-page">
     <form class="login-card" id="loginForm" autocomplete="on">
       <div class="brand"><div class="dot"></div></div>
-      <h1 data-i18n="app.brand">Blat-Chat</h1>
+      <h1 data-i18n="app.brand">FAMILY-CHAT</h1>
       <p class="sub" data-i18n="login.subtitle">Sign in to the family chat</p>
 
       <label for="username" data-i18n="login.username">Username</label>
@@ -24,9 +25,9 @@
       <div class="error" id="loginError"></div>
     </form>
   </main>
-  <script src="/js/i18n.js"></script>
-  <script src="/js/password-reveal.js"></script>
-  <script src="/js/login.js"></script>
+  <script src="/js/i18n.js?v=1"></script>
+  <script src="/js/password-reveal.js?v=1"></script>
+  <script src="/js/login.js?v=1"></script>
   <script>
     // Apply language as soon as the strings are in scope.
     (async function () {

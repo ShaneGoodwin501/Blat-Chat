@@ -14,8 +14,13 @@
 (function () {
   const STRINGS = {
     en: {
-      // App brand — intentionally not translated
-      'app.brand': 'Blat-Chat',
+      // App brand — "Blat-Chat" is the project name (GitHub repo); the
+      // user-facing room title is "FAMILY-CHAT".
+      'app.brand': 'FAMILY-CHAT',
+      'app.title': 'FAMILY-CHAT',
+      'app.title_login': 'FAMILY-CHAT — Sign in',
+      'app.title_admin': 'FAMILY-CHAT — Admin',
+      'app.title_forbidden': 'FAMILY-CHAT — Forbidden',
 
       // Login page
       'login.subtitle': 'Sign in to the family chat',
@@ -173,7 +178,11 @@
     },
 
     ru: {
-      'app.brand': 'Blat-Chat',
+      'app.brand': '\u0421\u0415\u041C\u0415\u0419\u041D\u042B\u0419 \u0427\u0410\u0422',
+      'app.title': '\u0421\u0415\u041C\u0415\u0419\u041D\u042B\u0419 \u0427\u0410\u0422',
+      'app.title_login': '\u0421\u0415\u041C\u0415\u0419\u041D\u042B\u0419 \u0427\u0410\u0422 \u2014 \u0412\u0445\u043E\u0434',
+      'app.title_admin': '\u0421\u0415\u041C\u0415\u0419\u041D\u042B\u0419 \u0427\u0410\u0422 \u2014 \u0410\u0434\u043C\u0438\u043D',
+      'app.title_forbidden': '\u0421\u0415\u041C\u0415\u0419\u041D\u042B\u0419 \u0427\u0410\u0422 \u2014 \u0414\u043E\u0441\u0442\u0443\u043F \u0437\u0430\u043F\u0440\u0435\u0449\u0451\u043D',
 
       'login.subtitle': '\u0412\u043E\u0439\u0434\u0438\u0442\u0435 \u0432 \u0441\u0435\u043C\u0435\u0439\u043D\u044B\u0439 \u0447\u0430\u0442',
       'login.username': '\u041B\u043E\u0433\u0438\u043D',
@@ -329,7 +338,25 @@
     return template.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
   }
 
-  let current = 'en';
+  // Persistent local backup so the chat page doesn't briefly flash English
+  // if the server fetch is slow.
+  const LANG_STORAGE_KEY = 'blatchat.lang';
+  function readStoredLang() {
+    try { return localStorage.getItem(LANG_STORAGE_KEY); } catch { return null; }
+  }
+  function writeStoredLang(lang) {
+    try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch {}
+  }
+
+  // Initial language: prefer the <meta name="blatchat-lang"> tag the server
+  // injects, then localStorage, then 'en'. This avoids a flash of English on
+  // page load while the async /api/settings call is in flight.
+  function readMetaLang() {
+    const m = document.querySelector('meta[name="blatchat-lang"]');
+    if (m && m.content && STRINGS[m.content]) return m.content;
+    return null;
+  }
+  let current = readMetaLang() || readStoredLang() || 'en';
 
   function getLang() { return current; }
 
@@ -345,6 +372,7 @@
     if (STRINGS[lang]) current = lang;
     else current = 'en';
     try { document.documentElement.lang = current; } catch {}
+    writeStoredLang(current);
   }
 
   // Walk the DOM and apply data-i18n / data-i18n-attr.
@@ -366,16 +394,31 @@
     scope.querySelectorAll('[data-i18n-aria]').forEach((el) => {
       el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria')));
     });
+    // <title> in <head> — set document.title.
+    const titleEl = scope.querySelector('title[data-i18n]');
+    if (titleEl) document.title = t(titleEl.getAttribute('data-i18n'));
   }
 
-  // Async helper: load the server's default language and apply it.
-  // Falls back silently to 'en' on any error.
+  // Set the browser tab title to a translation key.
+  function setPageTitle(key) {
+    document.title = t(key);
+  }
+
+  // Async helper: refresh language from the server. If the server returns a
+  // different value than what was synchronously detected, update everything
+  // (current lang, <html lang>, and the DOM via callI18n).
+  // Falls back silently to the current value on any error.
   async function loadLang() {
     try {
       const r = await fetch('/api/settings/default-language');
       if (r.ok) {
         const { language } = await r.json();
-        if (language) setLang(language);
+        if (language && STRINGS[language] && language !== current) {
+          setLang(language);
+          // Refresh any DOM that was already translated. Note: pages that
+          // call loadLang() before the DOM is ready will get a second pass.
+          if (typeof callI18n === 'function') callI18n();
+        }
       }
     } catch {}
     return current;
@@ -385,5 +428,6 @@
   window.setLang = setLang;
   window.getLang = getLang;
   window.callI18n = callI18n;
+  window.setPageTitle = setPageTitle;
   window.loadLang = loadLang;
 })();
