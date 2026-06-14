@@ -95,11 +95,12 @@ input:focus, textarea:focus, select:focus {
   background: var(--bg-3);
 }
 /* Composer textarea: don't let the global focus ring dominate — the composer
-   is a 24/7 input surface, the 4px default ring looked like a 4-5x thicker
-   border. Keep just a 1.5px subtle highlight. */
+   is a 24/7 input surface, ANY ring looks like a 4-5x thicker border.
+   Just nudge the border colour a hair and skip the box-shadow ring entirely. */
 .composer textarea:focus {
-  box-shadow: 0 0 0 1.5px rgba(108, 140, 255, 0.22);
-  border-color: rgba(108, 140, 255, 0.45);
+  box-shadow: none;
+  border-color: rgba(108, 140, 255, 0.40);
+  background: var(--bg-3);
 }
 
 button {
