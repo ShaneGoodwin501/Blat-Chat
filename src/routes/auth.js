@@ -40,6 +40,20 @@ function buildAuthRouter(db) {
     res.json({ user });
   });
 
+  // POST /api/auth/password — change your own password.
+  // Admins use the admin page; this is for self-service.
+  router.post('/password', requireAuth, express.json(), (req, res) => {
+    const oldPw = String(req.body?.old_password || '');
+    const newPw = String(req.body?.new_password || '');
+    if (newPw.length < 8) return res.status(400).json({ error: 'password_too_short' });
+    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.session.userId);
+    if (!user || !verifyPassword(oldPw, user.password_hash)) {
+      return res.status(401).json({ error: 'invalid_credentials' });
+    }
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPw), req.session.userId);
+    res.json({ ok: true });
+  });
+
   return router;
 }
 

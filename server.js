@@ -59,13 +59,17 @@ app.set('trust proxy', TRUST_PROXY ? 1 : false);
 
 app.use(helmet({
   contentSecurityPolicy: {
-    useDefaults: true,
+    useDefaults: false, // turn off helmet's default `upgrade-insecure-requests` — it forces HTTP→HTTPS even when there is no HTTPS
     directives: {
       "default-src": ["'self'"],
       "script-src": ["'self'", "https://cdn.socket.io"],
       "style-src": ["'self'", "'unsafe-inline'"],
       "img-src": ["'self'", "data:"],
       "connect-src": ["'self'", "ws:", "wss:"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+      "frame-ancestors": ["'none'"],
+      "object-src": ["'none'"],
     },
   },
   crossOriginEmbedderPolicy: false,

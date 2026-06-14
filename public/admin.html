@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0e1116">
+  <meta name="theme-color" content="#0a0b10">
   <title>Blat-Chat — Admin</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <div class="app">
     <header class="bar">
-      <h1>Admin</h1>
+      <h1><span class="dot"></span> Admin</h1>
       <span class="spacer"></span>
       <a class="btn" href="/">Chat</a>
       <button class="link" id="logoutBtn">Sign out</button>
@@ -18,7 +18,9 @@
 
     <main class="admin">
       <div class="card">
-        <h2>Add user</h2>
+        <div class="card-header">
+          <h2>Add user</h2>
+        </div>
         <form id="addUserForm" class="form-grid" autocomplete="off">
           <div class="row">
             <label for="nu_username">Username</label>
@@ -47,27 +49,29 @@
       </div>
 
       <div class="card">
-        <h2>Users</h2>
-        <table id="usersTable">
+        <div class="card-header">
+          <h2>Users</h2>
+          <span class="count" id="usersCount">—</span>
+        </div>
+        <table>
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Username</th>
-              <th>Display</th>
+              <th>User</th>
               <th>Role</th>
               <th>Active</th>
               <th>Created</th>
-              <th></th>
+              <th style="text-align:right">Actions</th>
             </tr>
           </thead>
           <tbody id="usersBody">
-            <tr><td colspan="7" style="color:var(--text-faint)">Loading…</td></tr>
+            <tr><td colspan="5" style="color:var(--text-faint)">Loading…</td></tr>
           </tbody>
         </table>
       </div>
     </main>
   </div>
 
+  <div class="toast-stack" id="toastStack"></div>
   <script src="/js/admin.js"></script>
 </body>
 </html>
