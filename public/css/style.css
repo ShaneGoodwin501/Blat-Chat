@@ -297,18 +297,29 @@ header.bar h1 .dot {
   box-shadow: 0 0 10px rgba(108,140,255,0.6);
 }
 header.bar .spacer { flex: 1; }
-header.bar .me {
-  font-size: 12px;
-  color: var(--text-dim);
+/* My avatar in the header — round, fixed size, right-aligned. Shows
+   the photo when one is set, or a coloured initial when it isn't. */
+header.bar .me-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: 1.2;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-3);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
 }
-header.bar .me .me-greeting { color: var(--text-faint); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-header.bar .me .me-name { color: var(--text); font-size: 13px; font-weight: 500; }
-@media (max-width: 600px) {
-  header.bar .me { display: none; } /* mobile: save space, name visible in menu */
+header.bar .me-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 header.bar a.btn, header.bar button.link {
   background: transparent;

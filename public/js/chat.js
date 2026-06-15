@@ -13,7 +13,7 @@
   const attachThumb = document.getElementById('attachThumb');
   const attachName = document.getElementById('attachName');
   const attachClear = document.getElementById('attachClear');
-  const meLabel = document.getElementById('meLabel');
+  const meAvatar = document.getElementById('meAvatar');
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
   const nickBtn = document.getElementById('nickBtn');
@@ -66,6 +66,22 @@
   // Cache-busted avatar URL for a given user id.
   function avatarUrl(userId) {
     return `/avatars/${encodeURIComponent(userId)}?v=${me && me.id === userId ? myAvatarVersion : 0}`;
+  }
+  // Render the current user's avatar into the header circle. Photo if
+  // one is set, otherwise a coloured initial. Mirrors the same
+  // fallback pattern as avatarHtml() so a 404 on the image is
+  // handled gracefully.
+  function renderMeAvatar() {
+    if (!me) return;
+    const display = me.display_name || me.username || 'user';
+    const initial = initialsOf(display);
+    const color = avatarColor(String(me.id) + ':' + display);
+    meAvatar.style.background = color;
+    if (me.has_avatar) {
+      meAvatar.innerHTML = `<img src="${avatarUrl(me.id)}" alt="${escapeHtml(display)}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:${JSON.stringify(initial)}}))">`;
+    } else {
+      meAvatar.textContent = initial;
+    }
   }
   function avatarHtml(user, opts = {}) {
     const display = opts.display_name || user.display_name || user.username || 'user';
@@ -399,7 +415,7 @@
     if (r.status === 401) { window.location.href = '/login'; return null; }
     const data = await r.json();
     me = data.user;
-    meLabel.textContent = me.display_name;
+    renderMeAvatar();
     if (me.role === 'admin') adminLink.classList.remove('hidden');
     return me;
   }
@@ -1013,6 +1029,7 @@
         me.has_avatar = 1;
         toast(t('chat.toast.profile_updated'), 'success');
         if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: true });
+        renderMeAvatar();
         // Force every already-rendered avatar image of mine to refresh
         document.querySelectorAll('img.avatar-img').forEach((im) => {
           // Bump the cache-buster query
@@ -1029,6 +1046,7 @@
         myAvatarVersion = Date.now();
         toast(t('chat.toast.profile_removed'), 'success');
         if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: false });
+        renderMeAvatar();
         document.querySelectorAll('img.avatar-img').forEach((im) => {
           // We can't tell ours apart from others by URL alone (cache-bust
           // differs); refresh any image, the broken ones re-render via
@@ -1157,7 +1175,6 @@
     socket.emit('set_display_name', next, (ack) => {
       if (ack && ack.ok) {
         me.display_name = ack.display_name;
-        meLabel.textContent = ack.display_name;
         toast(t('chat.toast.nickname_updated'), 'success');
       } else toast(t('chat.toast.nickname_failed'), 'error');
     });

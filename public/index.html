@@ -6,17 +6,14 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=35">
+  <link rel="stylesheet" href="/css/style.css?v=36">
 </head>
 <body>
   <div class="app">
     <header class="bar">
       <h1><span class="dot"></span> <span data-i18n="app.brand">FAMILY-CHAT</span></h1>
       <span class="spacer"></span>
-      <span class="me">
-        <span class="me-greeting" data-i18n="header.signed_in_as">Signed in as</span>
-        <span class="me-name" id="meLabel">&hellip;</span>
-      </span>
+      <div class="me-avatar" id="meAvatar" aria-label="My profile"></div>
       <button class="menu-btn" id="menuBtn" aria-label="Menu" data-i18n-aria="header.menu" title="Menu" aria-haspopup="true" aria-expanded="false">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -86,6 +83,6 @@
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=27"></script>
+  <script src="/js/chat.js?v=28"></script>
 </body>
 </html>
