@@ -1461,14 +1461,41 @@
       oldestId = rows.length ? rows[0].id : null;
       noMoreHistory = rows.length < 50;
       rows.forEach(renderMessage);
-      // Defer to the next frame so the DOM has been laid out (and
-      // images have a chance to start loading) before we measure
-      // scrollHeight. Without this, the initial scroll lands in the
-      // middle of the chat on first login.
-      requestAnimationFrame(() => {
-        scrollToBottom(false);
-        scrollBottomBtn.classList.add('hidden');
-      });
+      // Scroll to the bottom once the messages have settled. We have
+      // to wait for two things: (1) the DOM to be laid out (next
+      // animation frame), and (2) any inline images to finish loading,
+      // because each image grows scrollHeight and would otherwise
+      // leave the user stranded in the middle of the chat.
+      const scrollToBottomWhenReady = () => {
+        const pending = [...messagesEl.querySelectorAll('img')]
+          .filter(img => !img.complete);
+        if (pending.length === 0) {
+          scrollToBottom(false);
+          scrollBottomBtn.classList.add('hidden');
+          return;
+        }
+        let remaining = pending.length;
+        const onSettle = () => {
+          if (--remaining > 0) return;
+          scrollToBottom(false);
+          scrollBottomBtn.classList.add('hidden');
+        };
+        pending.forEach(img => {
+          img.addEventListener('load', onSettle, { once: true });
+          img.addEventListener('error', onSettle, { once: true });
+        });
+        // Safety net: even if an image never fires load/error (rare,
+        // but happens with data: URLs in some browsers), settle after
+        // 1.5s so the user isn't stuck.
+        setTimeout(() => {
+          if (remaining > 0) {
+            remaining = 0;
+            scrollToBottom(false);
+            scrollBottomBtn.classList.add('hidden');
+          }
+        }, 1500);
+      };
+      requestAnimationFrame(scrollToBottomWhenReady);
       // Show the "Load older" button if we got the full page of history.
       if (rows.length >= 50 && !noMoreHistory) {
         loadOlderBtn.classList.remove('hidden');
