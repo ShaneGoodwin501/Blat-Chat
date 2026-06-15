@@ -161,15 +161,22 @@
     row.className = `msg-row${isGroupedClass}${ownClass}`;
     row.dataset.id = m.id;
     row.dataset.userId = m.user_id;
-    // Action buttons — only for own messages (or for admin, on any message).
+    // Action buttons — copy is always available for own messages.
+    // Delete is intentionally NOT shown on the user's own messages (easy
+    // to mis-click on hover, and the user asked for it gone) — admins
+    // still see delete on OTHER people's messages for moderation.
     // Hidden by default; shown on row hover.
-    const canDelete = isMe || (me && me.role === 'admin');
+    const canDelete = me && me.role === 'admin' && !isMe;
     const actionsHtml = canDelete ? `
       <div class="msg-actions">
         <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
         <button type="button" data-act="delete" class="danger" title="${escapeHtml(t('chat.delete'))}" aria-label="${escapeHtml(t('chat.delete'))}">×</button>
       </div>
-    ` : '';
+    ` : (isMe ? `
+      <div class="msg-actions">
+        <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
+      </div>
+    ` : '');
     row.innerHTML = `${actionsHtml}${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
     messagesEl.appendChild(row);
 
@@ -381,9 +388,12 @@
   }
 
   // Show a quick "Uploading…" overlay on the composer preview while we POST.
+  // Targets .composer-stack (the wrapper) because the attach-preview now
+  // lives outside the <form> — see the HTML comment in index.html. The
+  // disabled-state CSS is also re-scoped to .composer-stack (see style.css).
   function setUploadingState(on) {
-    const composer = document.querySelector('.composer');
-    if (composer) composer.classList.toggle('uploading', !!on);
+    const stack = document.querySelector('.composer-stack');
+    if (stack) stack.classList.toggle('uploading', !!on);
   }
 
   async function uploadPhoto(file) {

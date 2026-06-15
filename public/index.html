@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=20">
+  <link rel="stylesheet" href="/css/style.css?v=21">
 </head>
 <body>
   <div class="app">
@@ -39,18 +39,29 @@
       <button type="button" class="load-older hidden" id="loadOlderBtn" data-i18n="chat.load_older">Load older messages</button>
       <button type="button" class="scroll-bottom hidden" id="scrollBottomBtn" data-i18n-aria="chat.scroll_to_bottom" aria-label="Jump to latest" title="Jump to latest">\u2193</button>
       <div class="typing hidden" id="typingIndicator" aria-live="polite"></div>
-      <form class="composer" id="composer" autocomplete="off">
+      <div class="composer-stack">
+        <!--
+          The attach preview must live OUTSIDE the .composer <form>. The
+          composer has overflow:hidden (so flex children can't push it
+          wider than the chat column on narrow phones), and any
+          position:absolute child positioned with bottom:100% gets
+          clipped by that. Wrapping the form + preview in .composer-stack
+          gives the absolute preview a containing block whose height
+          equals the composer's, so bottom:100% lands cleanly above it.
+        -->
         <div class="attach-preview hidden" id="attachPreview">
           <img id="attachThumb" alt="">
           <span class="name" id="attachName"></span>
           <button type="button" id="attachClear" data-i18n-aria="chat.attach_clear" title="Remove">&times;</button>
         </div>
-        <button type="button" class="icon-btn emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
-        <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
-        <input type="file" id="photoInput" accept="image/*">
-        <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
-        <button type="submit" class="send-btn" data-i18n-aria="chat.send" aria-label="Send">&#x27A4;</button>
-      </form>
+        <form class="composer" id="composer" autocomplete="off">
+          <button type="button" class="icon-btn emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
+          <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
+          <input type="file" id="photoInput" accept="image/*">
+          <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
+          <button type="submit" class="send-btn" data-i18n-aria="chat.send" aria-label="Send">&#x27A4;</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -65,6 +76,6 @@
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=17"></script>
+  <script src="/js/chat.js?v=18"></script>
 </body>
 </html>
