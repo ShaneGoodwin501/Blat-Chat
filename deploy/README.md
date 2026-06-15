@@ -16,8 +16,10 @@ apt update && apt -y upgrade
 
 ## 2. Create a non-root user + firewall
 
+We run the app as `shane` (matches the live deployment).
+
 ```sh
-adduser blatchat --disabled-password --gecos ""
+adduser shane --disabled-password --gecos ""
 # Allow SSH, HTTP, HTTPS; nothing else
 ufw allow OpenSSH
 ufw allow 80/tcp
@@ -37,11 +39,11 @@ node --version   # should print v22.x
 
 ```sh
 mkdir -p /opt/blatchat /var/lib/blatchat
-chown -R blatchat:blatchat /opt/blatchat /var/lib/blatchat
+chown -R shane:shane /opt/blatchat /var/lib/blatchat
 # Pull the code (clone or scp)
-su - blatchat -c "git clone https://github.com/ShaneGoodwin501/Blat-Chat.git /opt/blatchat"
+su - shane -c "git clone https://github.com/ShaneGoodwin501/Blat-Chat.git /opt/blatchat"
 cd /opt/blatchat
-sudo -u blatchat npm install --omit=dev
+sudo -u shane npm install --omit=dev
 ```
 
 ## 5. Configure the app
@@ -67,7 +69,7 @@ Fix permissions:
 
 ```sh
 chmod 600 /opt/blatchat/.env
-chown blatchat:blatchat /opt/blatchat/.env
+chown shane:shane /opt/blatchat/.env
 ```
 
 ## 6. Install the systemd unit
@@ -139,7 +141,20 @@ tar -czf /var/backups/blatchat-$(date +%F).tgz -C /var/lib blatchat
 
 ```sh
 cd /opt/blatchat
-sudo -u blatchat git pull
-sudo -u blatchat npm install --omit=dev
+sudo -u shane git pull
+sudo -u shane npm install --omit=dev
 systemctl restart blatchat
 ```
+
+**Note on restarting the service:** the `node` process running on the live
+box ignores SIGTERM, so `systemctl restart blatchat` will hang in
+'deactivating'. For a clean restart, do:
+
+```sh
+pkill -9 -f "node server.js"
+sleep 3
+# systemd auto-respawns it
+```
+
+The 3-second sleep gives systemd time to clean up the old process before
+the new one starts.
