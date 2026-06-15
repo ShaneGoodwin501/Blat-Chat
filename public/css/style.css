@@ -624,6 +624,37 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .load-older:hover { color: var(--text); background: var(--bg-4); }
 .load-older:disabled { opacity: 0.5; cursor: default; }
 
+/* Scroll-to-bottom button — round, bottom-centre, floats above the
+   composer. Hidden when the messages list is already at the bottom. */
+.scroll-to-bottom {
+  position: absolute;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-pop);
+  z-index: 10;
+  padding: 0;
+  transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+  opacity: 0.95;
+}
+.scroll-to-bottom:hover { background: var(--bg-4); }
+.scroll-to-bottom:active { transform: translateX(-50%) scale(0.94); }
+.scroll-to-bottom svg { display: block; }
+.scroll-to-bottom.hidden { display: none; }
+@media (max-width: 600px) {
+  .scroll-to-bottom { bottom: 72px; width: 36px; height: 36px; }
+}
+
 /* Typing indicator — sits between messages and composer, slides in. */
 .typing {
   padding: 6px 20px 4px;

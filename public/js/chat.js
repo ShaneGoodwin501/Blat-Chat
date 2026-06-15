@@ -1221,6 +1221,16 @@
     return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 24;
   }
 
+  const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
+  function updateScrollBottomBtn() {
+    if (isAtBottom()) {
+      scrollBottomBtn.classList.add('hidden');
+    } else {
+      scrollBottomBtn.classList.remove('hidden');
+    }
+  }
+
   messagesEl.addEventListener('scroll', () => {
     // If the user scrolls all the way to the top, show the "Load older" button.
     if (messagesEl.scrollTop < 40 && oldestId && !isLoadingOlder && !noMoreHistory) {
@@ -1228,6 +1238,16 @@
     } else {
       loadOlderBtn.classList.add('hidden');
     }
+    // Show the round "scroll to latest" button whenever the user has
+    // scrolled away from the bottom. Clicking it snaps back down and
+    // re-engages auto-scroll.
+    updateScrollBottomBtn();
+  });
+
+  scrollBottomBtn.addEventListener('click', () => {
+    scrollToBottom();
+    // After scrolling, the user is at the bottom — hide the button.
+    scrollBottomBtn.classList.add('hidden');
   });
 
   loadOlderBtn.addEventListener('click', async () => {
@@ -1441,17 +1461,34 @@
       oldestId = rows.length ? rows[0].id : null;
       noMoreHistory = rows.length < 50;
       rows.forEach(renderMessage);
-      scrollToBottom(false);
+      // Defer to the next frame so the DOM has been laid out (and
+      // images have a chance to start loading) before we measure
+      // scrollHeight. Without this, the initial scroll lands in the
+      // middle of the chat on first login.
+      requestAnimationFrame(() => {
+        scrollToBottom(false);
+        scrollBottomBtn.classList.add('hidden');
+      });
       // Show the "Load older" button if we got the full page of history.
       if (rows.length >= 50 && !noMoreHistory) {
         loadOlderBtn.classList.remove('hidden');
       }
     });
     socket.on('message', (m) => {
+      // Capture the user's scroll position BEFORE adding the new
+      // message — adding it grows scrollHeight, which would make
+      // isAtBottom() return false even if the user was pinned to
+      // the bottom. The fix is to check first, then render, then
+      // scroll if appropriate.
+      const wasAtBottom = isAtBottom();
       renderMessage(m);
       oldestId = oldestId == null ? m.id : Math.min(oldestId, m.id);
-      // Auto-scroll only if the user was already at the bottom.
-      if (isAtBottom()) scrollToBottom();
+      if (wasAtBottom) {
+        scrollToBottom();
+        scrollBottomBtn.classList.add('hidden');
+      } else {
+        scrollBottomBtn.classList.remove('hidden');
+      }
       // Browser notification if the tab is hidden and user opted in.
       showMessageNotification(m);
     });
