@@ -60,6 +60,9 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   height: 100%;
+  /* Lock the page like an app: no body scroll, no rubber-band bounce. */
+  overflow: hidden;
+  overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -236,26 +239,11 @@ button.ghost:hover { color: var(--text); background: var(--bg-3); }
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* Fill the viewport edge-to-edge on every screen size — the page
+     itself is locked (see html, body), so there are no margins to
+     leave room for. */
   height: 100dvh;
-  max-width: 920px;
-  margin: 0 auto;
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%), var(--bg-1);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-}
-
-@media (min-width: 920px) {
-  .app {
-    margin-top: 24px;
-    margin-bottom: 24px;
-    height: calc(100vh - 48px);
-    height: calc(100dvh - 48px);
-    border-radius: var(--r-xl);
-    box-shadow: var(--shadow-2);
-    overflow: hidden;
-    border: 1px solid var(--border-2);
-  }
+  overflow: hidden;
 }
 
 header.bar {
