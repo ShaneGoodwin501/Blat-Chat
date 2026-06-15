@@ -720,6 +720,10 @@
       textInput.value = '';
       autoResize();
     }
+    if (!window.isSecureContext) {
+      toast(t('chat.voice.insecure_context'), 'error');
+      return;
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       toast(t('chat.voice.not_supported'), 'error');
       return;
