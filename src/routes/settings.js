@@ -86,7 +86,11 @@ function buildAdminSettingsRouter(db) {
       INSERT INTO settings (key, value) VALUES ('default_language', ?)
       ON CONFLICT(key) DO UPDATE SET value = excluded.value
     `).run(lang);
-    res.json({ ok: true, default_language: lang });
+    // Admin's default overrides any per-user preference. Clear all
+    // user preferences so the new default takes effect for everyone
+    // immediately. Users can re-set their own preference afterwards.
+    db.prepare('UPDATE users SET preferred_language = NULL').run();
+    res.json({ ok: true, default_language: lang, cleared_user_preferences: true });
   });
 
   return router;
