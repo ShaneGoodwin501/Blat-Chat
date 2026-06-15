@@ -1024,11 +1024,16 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 }
 .recording button:hover { color: var(--text); background: var(--bg-4); }
 .composer-stack.recording .send-btn {
-  background: #2a7a4d;
-  border-color: #2a7a4d;
+  background: #d9384a;
+  border-color: #d9384a;
   color: #fff;
+  min-width: 56px;
+  padding: 0 18px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 12px rgba(217, 56, 74, 0.45);
 }
-.composer-stack.recording .send-btn:hover { background: #23814f; border-color: #23814f; }
+.composer-stack.recording .send-btn:hover { background: #c02e3f; border-color: #c02e3f; }
 /* While recording, disable the other composer buttons to keep the
    state machine obvious — there's exactly one thing to do (hit send
    or cancel). */
