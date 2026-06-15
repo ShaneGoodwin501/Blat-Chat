@@ -848,6 +848,19 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .body-wrap.me .body a.attach-link { color: rgba(255,255,255,0.92); }
 
 /* ---- Composer ---- */
+/* .composer-stack wraps the attach-preview (absolutely positioned
+   above the form) and the <form.composer> itself. Without this wrapper
+   the absolute preview's `bottom:100%` resolves against the form, and
+   the form's overflow:hidden (needed to keep flex children from
+   pushing it wider than the chat column on narrow phones) silently
+   clips the preview off-screen. The stack provides a containing block
+   whose height equals the form's, so bottom:100% lands cleanly above. */
+.composer-stack {
+  flex: 0 0 auto;
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
 .composer {
   flex: 0 0 auto;
   display: flex;
@@ -904,7 +917,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   place-items: center;
   font-size: 16px;
 }
-.composer .attach-preview {
+.composer-stack .attach-preview {
   position: absolute;
   bottom: 100%;
   left: 0;
@@ -919,14 +932,14 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   font-size: 13px;
   animation: msgIn var(--t-fast) var(--ease);
 }
-.composer .attach-preview img {
+.composer-stack .attach-preview img {
   height: 72px;
   width: 72px;
   border-radius: var(--r-sm);
   object-fit: cover;
   flex: 0 0 auto;
 }
-.composer .attach-preview .name {
+.composer-stack .attach-preview .name {
   color: var(--text-dim);
   font-size: 12px;
   flex: 1 1 auto;
@@ -935,7 +948,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   text-overflow: ellipsis;
   display: none; /* filename hidden — the thumbnail speaks for itself */
 }
-.composer .attach-preview button {
+.composer-stack .attach-preview button {
   background: transparent;
   border: 0;
   color: var(--text-faint);
@@ -945,20 +958,20 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   min-height: 0;
   box-shadow: none;
 }
-.composer .attach-preview button:hover { color: var(--text); }
+.composer-stack .attach-preview button:hover { color: var(--text); }
 .composer input[type=file] { display: none; }
 
 /* Subtle disabled state on the composer while a photo is uploading, so
    the user knows the round-trip is in progress and the preview isn't
    "stuck". */
-.composer.uploading .send-btn,
-.composer.uploading .icon-btn,
-.composer.uploading textarea { opacity: 0.55; pointer-events: none; }
-.composer.uploading .attach-preview {
+.composer-stack.uploading .send-btn,
+.composer-stack.uploading .icon-btn,
+.composer-stack.uploading textarea { opacity: 0.55; pointer-events: none; }
+.composer-stack.uploading .attach-preview {
   outline: 2px solid var(--accent, #6ea8ff);
   outline-offset: -2px;
 }
-.composer.uploading .attach-preview::after {
+.composer-stack.uploading .attach-preview::after {
   content: '';
   position: absolute;
   inset: 0;
