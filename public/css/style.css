@@ -246,6 +246,19 @@ button.ghost:hover { color: var(--text); background: var(--bg-3); }
   overflow: hidden;
 }
 
+/* On phones the app is edge-to-edge. On tablets and PCs, cap the width
+   and centre it so the chat column doesn't sprawl across ultrawide
+   monitors — messages stay readable, the body's gradient shows on the
+   sides. */
+@media (min-width: 768px) {
+  .app {
+    max-width: 800px;
+    margin: 0 auto;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}
+
 header.bar {
   display: flex;
   align-items: center;
