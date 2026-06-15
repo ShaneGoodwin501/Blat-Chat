@@ -672,7 +672,8 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 }
 .avatar.online .online-dot { display: block; }
 
-/* Delete button on message hover — only on own messages (or all for admins). */
+/* Copy button on own message hover. (Delete was here previously — it
+   now lives inside the chat bubble itself, see .bubble-delete below.) */
 .msg-row .msg-actions {
   display: none;
   position: absolute;
@@ -698,9 +699,50 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   box-shadow: none;
 }
 .msg-row .msg-actions button:hover { color: var(--text); background: var(--bg-4); }
-.msg-row .msg-actions button.danger:hover { color: var(--danger); }
 .msg-row.me { position: relative; }
 .msg-row.me .msg-actions { right: auto; left: 4px; }
+
+/* Delete (white X) — anchored to the top-right corner of the chat
+   bubble itself. .body-wrap is position:relative, so the absolute
+   positioning lands inside the bubble's padding. Hidden until the
+   message row is hovered. Only rendered on rows where canDelete is
+   true (admin viewing OTHER people's messages). */
+.body-wrap .bubble-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  /* The generic `button` rule sets min-height: 42px (it assumes every
+     button is a full-size form submit). We need a small clickable target
+     in the bubble corner, so zero it out. Same for the box-shadow and
+     gradient background — both look wrong on a corner icon. */
+  min-height: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.28);
+  border: 0;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.body-wrap .bubble-delete:hover { filter: none; transform: none; }
+.msg-row:hover .body-wrap .bubble-delete { display: flex; }
+.body-wrap .bubble-delete:hover {
+  background: rgba(220, 50, 70, 0.85);
+  color: #fff;
+}
+.body-wrap .bubble-delete:focus-visible {
+  outline: 2px solid var(--accent-1);
+  outline-offset: 1px;
+}
 
 /* "Message deleted" tombstone. */
 .msg-deleted {

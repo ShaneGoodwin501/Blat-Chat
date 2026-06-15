@@ -161,23 +161,29 @@
     row.className = `msg-row${isGroupedClass}${ownClass}`;
     row.dataset.id = m.id;
     row.dataset.userId = m.user_id;
-    // Action buttons — copy is always available for own messages.
-    // Delete is intentionally NOT shown on the user's own messages (easy
-    // to mis-click on hover, and the user asked for it gone) — admins
-    // still see delete on OTHER people's messages for moderation.
+    // Action buttons:
+    //   • Copy is always available for own messages (⎘, in the existing
+    //     floating actions area).
+    //   • Delete is intentionally NOT shown on the user's own messages.
+    //     Admins can still delete OTHER people's messages, but the button
+    //     now lives in the top-right corner of the chat bubble itself
+    //     (white X), not in the floating actions chip — per Shane's UX
+    //     request. The click handler in messagesEl already routes
+    //     data-act="delete" to the socket, so we just need a button with
+    //     that data attribute wherever we want it.
     // Hidden by default; shown on row hover.
     const canDelete = me && me.role === 'admin' && !isMe;
-    const actionsHtml = canDelete ? `
-      <div class="msg-actions">
-        <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
-        <button type="button" data-act="delete" class="danger" title="${escapeHtml(t('chat.delete'))}" aria-label="${escapeHtml(t('chat.delete'))}">×</button>
-      </div>
-    ` : (isMe ? `
+    const actionsHtml = isMe ? `
       <div class="msg-actions">
         <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
       </div>
-    ` : '');
-    row.innerHTML = `${actionsHtml}${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}"><div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
+    ` : '';
+    // The white X delete button. Rendered inside .body-wrap so the bubble's
+    // own position:relative can anchor it to its top-right corner.
+    const bubbleDeleteHtml = canDelete ? `
+      <button type="button" class="bubble-delete" data-act="delete" title="${escapeHtml(t('chat.delete'))}" aria-label="${escapeHtml(t('chat.delete'))}">×</button>
+    ` : '';
+    row.innerHTML = `${actionsHtml}${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}">${bubbleDeleteHtml}<div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
     messagesEl.appendChild(row);
 
     lastRenderedUserId = m.user_id;
