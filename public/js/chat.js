@@ -338,30 +338,132 @@
     attachPreview.classList.remove('hidden');
   }
 
-  async function uploadPhoto(file) {
-    const fd = new FormData();
-    fd.append('photo', file);
-    const r = await fetch('/api/upload', { method: 'POST', body: fd });
-    if (r.status === 401) { window.location.href = '/login'; return null; }
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      if (err.error === 'bad_mime') toast(t('chat.err.image_format'), 'error');
-      else if (err.error === 'too_large') toast(t('chat.err.image_too_large'), 'error');
-      else toast(t('chat.err.upload_failed'), 'error');
-      return null;
+  // Try to convert an image File to a compressed JPEG via canvas.
+  // Returns a new File, or the original on failure (HEIC on Chrome, etc).
+  // This bypasses the server-side sharp pipeline for the common case and
+  // lets the browser handle whatever formats it can decode (incl. HEIC on
+  // iOS Safari, which sharp can't).
+  async function canvasCompress(file, maxEdge = 1600, quality = 0.85) {
+    if (!file.type || !file.type.startsWith('image/')) return file;
+    const blobUrl = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error('decode failed'));
+        im.src = blobUrl;
+      });
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return file;
+      if (w > maxEdge || h > maxEdge) {
+        if (w >= h) { h = Math.round(h * maxEdge / w); w = maxEdge; }
+        else { w = Math.round(w * maxEdge / h); h = maxEdge; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
+      });
+      const newName = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], newName, { type: 'image/jpeg' });
+    } catch (e) {
+      console.warn('[composer] canvas compress failed, uploading original', e);
+      return file;
+    } finally {
+      URL.revokeObjectURL(blobUrl);
     }
-    const data = await r.json();
-    return data.attachment;
   }
 
-  photoInput.addEventListener('change', async (e) => {
+  // Show a quick "Uploading…" overlay on the composer preview while we POST.
+  function setUploadingState(on) {
+    const composer = document.querySelector('.composer');
+    if (composer) composer.classList.toggle('uploading', !!on);
+  }
+
+  async function uploadPhoto(file) {
+    const fd = new FormData();
+    fd.append('photo', file, file.name || 'photo.jpg');
+    setUploadingState(true);
+    try {
+      const r = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (r.status === 401) { window.location.href = '/login'; return null; }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        if (err.error === 'bad_mime') toast(t('chat.err.image_format'), 'error');
+        else if (err.error === 'too_large') toast(t('chat.err.image_too_large'), 'error');
+        else toast(t('chat.err.upload_failed'), 'error');
+        return null;
+      }
+      const data = await r.json();
+      return data.attachment;
+    } catch (e) {
+      console.error('[composer] upload fetch failed', e);
+      toast(t('chat.err.network'), 'error');
+      return null;
+    } finally {
+      setUploadingState(false);
+    }
+  }
+
+  // Show the preview IMMEDIATELY (using a data URL, not blob: URL — iOS
+  // Safari often refuses to decode blob: URLs from <input type=file>).
+  // Then upload in the background. If the upload fails, clear the preview.
+  async function pickAndAttach(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast(t('chat.err.image_too_large'), 'error');
+      photoInput.value = '';
+      return;
+    }
+    // Quick preview so the user gets feedback that something happened.
+    const reader = new FileReader();
+    const dataUrl = await new Promise((resolve) => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (!dataUrl) {
+      toast(t('chat.err.read_failed'), 'error');
+      photoInput.value = '';
+      return;
+    }
+    pendingThumbUrl = dataUrl;
+    attachThumb.onerror = () => {
+      console.warn('[composer] preview failed to decode', file.type, file.size);
+    };
+    attachThumb.src = dataUrl;
+    attachName.textContent = `${file.name} · ${(file.size / 1024).toFixed(0)} KB`;
+    attachPreview.classList.remove('hidden');
+
+    // Try to compress via canvas (works for any browser-decodable format,
+    // including HEIC on iOS Safari). Falls back to the original file.
+    const toUpload = await canvasCompress(file);
+
+    // Hold the preview in place until the upload completes; if the upload
+    // fails, clear it so the user can try again.
+    setUploadingState(true);
+    let att = null;
+    try {
+      att = await uploadPhoto(toUpload);
+    } finally {
+      setUploadingState(false);
+    }
+    if (att) {
+      pendingAttachment = { file, attachment: att };
+    } else {
+      clearAttachment();
+    }
+  }
+
+  photoInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); photoInput.value = ''; return; }
-    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast(t('chat.err.image_format'), 'error'); photoInput.value = ''; return; }
-    const att = await uploadPhoto(file);
-    if (att) setAttachment(file, att);
-    else photoInput.value = '';
+    pickAndAttach(file).catch((err) => {
+      console.error('[composer] pickAndAttach failed', err);
+      toast(t('chat.err.upload_failed'), 'error');
+      clearAttachment();
+    });
   });
 
   // ---- Drag-and-drop file upload ----
@@ -388,21 +490,22 @@
     dragDepth = Math.max(0, dragDepth - 1);
     if (dragDepth === 0) messagesEl.classList.remove('drag-over');
   });
-  messagesContainer.addEventListener('drop', async (e) => {
+  messagesContainer.addEventListener('drop', (e) => {
     if (!isImageDrag(e)) return;
     e.preventDefault();
     dragDepth = 0;
     messagesEl.classList.remove('drag-over');
     const file = e.dataTransfer.files && e.dataTransfer.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); return; }
-    if (!/^image\/(jpeg|png|gif|webp)$/.test(file.type)) { toast(t('chat.err.image_format'), 'error'); return; }
-    const att = await uploadPhoto(file);
-    if (att) setAttachment(file, att);
+    pickAndAttach(file).catch((err) => {
+      console.error('[composer] drop upload failed', err);
+      toast(t('chat.err.upload_failed'), 'error');
+      clearAttachment();
+    });
   });
 
   // Paste-image support: paste a screenshot from clipboard.
-  textInput.addEventListener('paste', async (e) => {
+  textInput.addEventListener('paste', (e) => {
     if (!e.clipboardData) return;
     const items = Array.from(e.clipboardData.items || []);
     const imageItem = items.find((it) => it.kind === 'file' && it.type && it.type.startsWith('image/'));
@@ -410,9 +513,11 @@
     e.preventDefault();
     const file = imageItem.getAsFile();
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { toast(t('chat.err.image_too_large'), 'error'); return; }
-    const att = await uploadPhoto(file);
-    if (att) setAttachment(file, att);
+    pickAndAttach(file).catch((err) => {
+      console.error('[composer] paste upload failed', err);
+      toast(t('chat.err.upload_failed'), 'error');
+      clearAttachment();
+    });
   });
 
   attachClear.addEventListener('click', clearAttachment);

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=19">
+  <link rel="stylesheet" href="/css/style.css?v=20">
 </head>
 <body>
   <div class="app">
@@ -47,7 +47,7 @@
         </div>
         <button type="button" class="icon-btn emoji-btn" id="emojiBtn" data-i18n-aria="chat.emoji" aria-label="Emoji" title="Emoji">&#x1F600;</button>
         <label for="photoInput" class="icon-btn" data-i18n-aria="chat.attach" aria-label="Attach photo" title="Attach photo">&#x1F4CE;</label>
-        <input type="file" id="photoInput" accept="image/jpeg,image/png,image/gif,image/webp">
+        <input type="file" id="photoInput" accept="image/*">
         <textarea id="textInput" data-i18n-attr="placeholder:chat.placeholder" placeholder="Message&hellip;" rows="1" maxlength="4000" aria-label="Message"></textarea>
         <button type="submit" class="send-btn" data-i18n-aria="chat.send" aria-label="Send">&#x27A4;</button>
       </form>
@@ -61,10 +61,10 @@
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-  <script src="/js/i18n.js?v=5"></script>
+  <script src="/js/i18n.js?v=6"></script>
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=15"></script>
+  <script src="/js/chat.js?v=16"></script>
 </body>
 </html>

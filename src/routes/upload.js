@@ -12,7 +12,7 @@ const sharp = require('sharp');
 const { requireAuth } = require('../auth');
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_DIMENSION = 1600;       // resize anything larger than this on the long edge
 const JPEG_QUALITY = 82;
 const PNG_COMPRESSION = 8;

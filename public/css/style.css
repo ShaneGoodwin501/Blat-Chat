@@ -948,6 +948,30 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .composer .attach-preview button:hover { color: var(--text); }
 .composer input[type=file] { display: none; }
 
+/* Subtle disabled state on the composer while a photo is uploading, so
+   the user knows the round-trip is in progress and the preview isn't
+   "stuck". */
+.composer.uploading .send-btn,
+.composer.uploading .icon-btn,
+.composer.uploading textarea { opacity: 0.55; pointer-events: none; }
+.composer.uploading .attach-preview {
+  outline: 2px solid var(--accent, #6ea8ff);
+  outline-offset: -2px;
+}
+.composer.uploading .attach-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  animation: uploadShimmer 1.2s linear infinite;
+  pointer-events: none;
+}
+@keyframes uploadShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
 /* ---- Admin ---- */
 .admin {
   flex: 1 1 auto;
