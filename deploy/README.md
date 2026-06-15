@@ -85,15 +85,35 @@ After that, add more users via the admin page.
 
 ## 7. Set up nginx + Let's Encrypt
 
+Either run the included script (recommended) or do it by hand.
+
+**Recommended — one command:**
+
+```sh
+sudo ./deploy/setup-https.sh <your-domain> <your-email>
+# e.g. sudo ./deploy/setup-https.sh chat.example.com you@example.com
+```
+
+The script installs certbot, renders `deploy/nginx.conf` with your domain,
+requests the cert, sets up the 80→443 redirect, and verifies. It's
+idempotent — re-run it any time to refresh certs or recover from drift.
+
+**By hand:**
+
 ```sh
 apt install -y nginx certbot python3-certbot-nginx
-# Edit deploy/nginx.conf: change chat.example.com to your domain
-cp /opt/blatchat/deploy/nginx.conf /etc/nginx/sites-available/blatchat
-ln -s /etc/nginx/sites-available/blatchat /etc/nginx/sites-enabled/
-nginx -t
-certbot --nginx -d chat.example.com
-systemctl reload nginx
+# Replace `chat.example.com` with your domain (two places: server_name and the cert paths).
+sed "s|chat\.example\.com|chat.your-domain.com|g" deploy/nginx.conf \
+    | sudo tee /etc/nginx/sites-available/blatchat
+sudo ln -s /etc/nginx/sites-available/blatchat /etc/nginx/sites-enabled/blatchat
+sudo rm -f /etc/nginx/sites-enabled/default   # so our server_name is unambiguous
+sudo nginx -t
+sudo certbot --nginx -d chat.your-domain.com --redirect
+sudo systemctl reload nginx
 ```
+
+Either way, certs auto-renew via `certbot.timer` (installed by the certbot
+package). Verify with `systemctl status certbot.timer`.
 
 ## 8. DNS
 

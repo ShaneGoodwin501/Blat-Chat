@@ -13,7 +13,7 @@ to every authenticated member.
 - 🪪 Change your nickname in chat at any time
 - 🛠 Admin page: create, rename, reset password, promote/demote, disable, delete
 - 🔌 Real-time over WebSockets (Socket.IO) with HTTP polling fallback
-- 🛡 HTTPS-ready (secure cookies, helmet headers, rate-limited login, CSRF-safe by SameSite)
+- 🔒 HTTPS-only in production (nginx + Let's Encrypt; see `deploy/setup-https.sh`)
 
 ## Stack
 
@@ -100,7 +100,8 @@ set `.env`, install the systemd unit, set up nginx + Let's Encrypt.
 │   └── js/{login,chat,admin}.js
 └── deploy/
     ├── blatchat.service
-    ├── nginx.conf
+    ├── nginx.conf         # HTTPS-only site config (substitute your domain)
+    ├── setup-https.sh     # one-shot certbot + nginx HTTPS setup
     └── README.md
 ```
 
