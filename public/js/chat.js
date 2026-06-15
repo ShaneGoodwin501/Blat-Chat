@@ -1117,28 +1117,44 @@
   // Language picker — set or clear the per-user preference. The server
   // is the source of truth; the localStorage write in setLang() is just
   // a synchronous first-paint fallback.
-  langBtn.addEventListener('click', async () => {
+  //
+  // Flow: showModal() creates the modal synchronously (the backdrop is
+  // appended to the DOM before the function returns its promise), so we
+  // must attach the lang-option click handlers IMMEDIATELY after the
+  // showModal() call — not after awaiting it. The previous version
+  // attached them after `await`, which only resolved when the modal
+  // was already dismissed, so clicks on language options were dead.
+  langBtn.addEventListener('click', () => {
+    // Read the user's current effective language so we can mark it.
     const current = window.getLang();
-    // Show a small picker: 3 options — auto, English, Russian.
-    const choice = await showModal({
+    // Translate the current language code to its display name for the
+    // "(current)" badge.
+    const currentName = current === 'ru' ? '\u0420\u0443\u0441\u0441\u043A\u0438\u0439' : 'English';
+    showModal({
       title: t('menu.language'),
       body: `
         <div class="lang-picker">
           <button type="button" class="lang-option" data-lang="" data-i18n="menu.language_use_default">Use default</button>
           <button type="button" class="lang-option" data-lang="en">English</button>
-          <button type="button" class="lang-option" data-lang="ru">Русский</button>
+          <button type="button" class="lang-option" data-lang="ru">\u0420\u0443\u0441\u0441\u043A\u0438\u0439</button>
         </div>
-        <p class="settings-help" style="margin-top:8px" data-i18n="settings.language_help">This sets the language used in menus and labels for all users. Messages you type can still be in any language.</p>
+        <p class="settings-help" style="margin-top:8px" data-i18n="menu.language_user_help">Choose your preferred language for menus and labels. Messages you type can still be in any language.</p>
+        <p class="settings-help" style="margin-top:4px; opacity:0.7"><span data-i18n="menu.language_current">Current</span>: <span id="langCurrent">${currentName}</span></p>
       `,
       primaryLabel: t('common.save'),
-      onSubmit: async (data) => {
-        // This modal returns a "choice" via a side-channel; instead we
-        // attach click handlers below and resolve early.
-        return false;
-      },
+      // The lang-option buttons handle their own saving; the primary
+      // Save button would just close the modal without doing anything.
+      onSubmit: async () => false,
     });
-    // The modal's primary button is replaced by a custom 3-way picker.
-    // Hide the default primary button and use the lang-option buttons.
+
+    // The modal backdrop is in the DOM now (showModal appends it before
+    // returning its promise). Translate its data-i18n attrs (the modal
+    // body was added AFTER i18n.js's initial callI18n()).
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) callI18n(backdrop);
+
+    // Wire up the lang-option buttons. Clicking one POSTs the new
+    // preference, applies the language, and closes the modal.
     document.querySelectorAll('.lang-option').forEach((btn) => {
       btn.addEventListener('click', async (ev) => {
         ev.preventDefault();
@@ -1152,12 +1168,12 @@
           });
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           const j = await r.json();
-          // The server returns the effective language (after applying the
-          // override or falling back to the default). Apply immediately.
+          // The server returns the effective language (after applying
+          // the override or falling back to the default). Apply immediately.
           window.setLang(j.language);
           window.callI18n();
           toast(t('common.saved'), 'success');
-          // Close the modal by clicking the cancel button.
+          // Close the modal.
           document.getElementById('modalCancel')?.click();
         } catch (e) {
           toast(t('common.error'), 'error');
