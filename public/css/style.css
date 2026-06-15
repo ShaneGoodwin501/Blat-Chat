@@ -998,15 +998,15 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .voice-player {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 1px 2px;
+  gap: 10px;
+  padding: 4px 2px;
   min-width: 220px;
   max-width: 280px;
   user-select: none;
 }
 .voice-player .vp-btn {
-  width: 12px;
-  height: 12px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(108, 140, 255, 0.18);
   border: 1px solid rgba(108, 140, 255, 0.35);
@@ -1014,7 +1014,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   display: grid;
   place-items: center;
   cursor: pointer;
-  font-size: 7px;
+  font-size: 14px;
   line-height: 1;
   padding: 0;
   flex: 0 0 auto;
@@ -1035,7 +1035,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .bubble.me .voice-player .vp-btn:hover { background: rgba(255, 255, 255, 0.28); }
 .voice-player .vp-track {
   flex: 1 1 auto;
-  height: 7px;
+  height: 22px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1046,7 +1046,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .voice-player .vp-bar {
   position: absolute;
   left: 0; right: 0; top: 50%;
-  height: 1.5px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.16);
   border-radius: 2px;
   transform: translateY(-50%);
@@ -1063,15 +1063,26 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .bubble.me .voice-player .vp-bar { background: rgba(255, 255, 255, 0.24); }
 .bubble.me .voice-player .vp-bar-fill { background: #fff; }
 .voice-player .vp-time {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   flex: 0 0 auto;
   text-align: right;
-  min-width: 32px;
+  min-width: 36px;
 }
 .bubble.me .voice-player .vp-time { color: rgba(255, 255, 255, 0.7); }
+
+/* Audio bubbles don't need a sender header — the player itself is the
+   whole point of the bubble. Hide the header and tighten the padding so
+   the bubble hugs the player instead of dwarfing it. */
+.bubble:has(.voice-player) {
+  padding: 4px 8px;
+  gap: 0;
+}
+.bubble:has(.voice-player) .bubble-header {
+  display: none;
+}
 
 /* Subtle disabled state on the composer while a photo is uploading, so
    the user knows the round-trip is in progress and the preview isn't
