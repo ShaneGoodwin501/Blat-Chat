@@ -555,8 +555,10 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;          /* center the × glyph inside the circle */
+  padding: 0;
   cursor: pointer;
   display: grid;
   place-items: center;
