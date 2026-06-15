@@ -1073,15 +1073,17 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 }
 .bubble.me .voice-player .vp-time { color: rgba(255, 255, 255, 0.7); }
 
-/* Audio bubbles don't need a sender header — the player itself is the
-   whole point of the bubble. Hide the header and tighten the padding so
-   the bubble hugs the player instead of dwarfing it. */
+/* Audio bubbles: keep the header (avatar/name/time) so the sender is
+   always visible, but compact the rest. The body uses white-space:
+   pre-wrap to preserve newlines in text messages — for audio messages
+   the body's template-literal whitespace would otherwise inflate into
+   empty lines (~21.75px each), blowing the bubble up to ~140px tall. */
 .bubble:has(.voice-player) {
-  padding: 4px 8px;
-  gap: 0;
+  padding: 4px 10px 5px;
+  gap: 2px;
 }
-.bubble:has(.voice-player) .bubble-header {
-  display: none;
+.bubble:has(.voice-player) .body {
+  white-space: normal;
 }
 
 /* Subtle disabled state on the composer while a photo is uploading, so
