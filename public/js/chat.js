@@ -259,7 +259,7 @@
               <div class="vp-bar"><div class="vp-bar-fill"></div></div>
             </div>
             <span class="vp-time" data-act="voice-time">0:00</span>
-            <audio preload="metadata" src="${src}" data-msg-id="${m.id}"></audio>
+            <audio preload="auto" src="${src}" data-msg-id="${m.id}"></audio>
           </div>
         `;
       } else {
@@ -1364,14 +1364,39 @@
         // Pause any other playing voice messages first — only one
         // voice message plays at a time (matches WhatsApp / iMessage).
         pauseAllVoiceExcept(audio);
-        audio.play().then(() => {
-          setVoiceState(player, 'playing');
-        }).catch((err) => {
-          // Autoplay can fail if the user hasn't interacted with the
-          // document yet. The first play needs a user gesture, which
-          // a click satisfies, so this is rare — log for debugging.
-          console.warn('[voice] play() rejected', err);
-        });
+        // Update the button immediately for instant feedback, then
+        // actually start playback. If the audio hasn't been fully
+        // buffered yet (readyState < HAVE_FUTURE_DATA), wait for
+        // 'canplay' before calling play() — otherwise the timeline
+        // moves from the buffering state but no audio comes out.
+        setVoiceState(player, 'playing');
+        const start = () => {
+          audio.play().then(() => {
+            setVoiceState(player, 'playing');
+          }).catch((err) => {
+            // Autoplay can fail if the user hasn't interacted with
+            // the document yet. The first play needs a user
+            // gesture, which a click satisfies, so this is rare.
+            console.warn('[voice] play() rejected', err);
+            setVoiceState(player, 'paused');
+          });
+        };
+        if (audio.readyState >= 3 /* HAVE_FUTURE_DATA */) {
+          start();
+        } else {
+          let armed = false;
+          const onReady = () => { armed = true; start(); };
+          audio.addEventListener('canplay', onReady, { once: true });
+          // Safety net: if neither canplay nor canplaythrough fires
+          // (corrupt file, stalled network), don't leave the button
+          // stuck on 'playing'.
+          setTimeout(() => {
+            if (!armed) {
+              audio.removeEventListener('canplay', onReady);
+              start();
+            }
+          }, 5000);
+        }
       } else {
         audio.pause();
         setVoiceState(player, 'paused');
