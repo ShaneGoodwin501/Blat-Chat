@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=37">
+  <link rel="stylesheet" href="/css/style.css?v=38">
 </head>
 <body>
   <div class="app">
@@ -79,6 +79,20 @@
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
+  <script>
+    // iOS Safari viewport-height fix. --app-height is the exact visible
+    // height in pixels (URL bar excluded), so the app never spills past
+    // the bottom of the screen and never has to wait for a resize event.
+    // 100dvh (set in CSS) is the fallback when this script hasn't run.
+    (function () {
+      function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', setAppHeight);
+    })();
+  </script>
   <script src="/js/i18n.js?v=6"></script>
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>

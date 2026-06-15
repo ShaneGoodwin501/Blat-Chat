@@ -6,9 +6,20 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title_login">FAMILY-CHAT &mdash; Sign in</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=16">
+  <link rel="stylesheet" href="/css/style.css?v=38">
 </head>
 <body>
+  <script>
+    // iOS Safari viewport-height fix. See index.html for details.
+    (function () {
+      function setAppHeight() {
+        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+      }
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', setAppHeight);
+    })();
+  </script>
   <main class="login-page">
     <form class="login-card" id="loginForm" autocomplete="on">
       <div class="brand"><div class="dot"></div></div>
