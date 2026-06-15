@@ -145,7 +145,7 @@
     // bubbles stack into a clean column.
     const isGroupedClass = grouped ? ' grouped' : '';
     const ownClass = isMe ? ' me' : '';
-    const headerHtml = grouped ? '' : `
+    const headerHtml = `
       <div class="bubble-header">
         ${bubbleAvatarHtml}
         <span class="bubble-name">${escapeHtml(display)}</span>

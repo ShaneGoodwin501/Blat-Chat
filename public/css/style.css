@@ -682,7 +682,7 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   margin-top: 6px;
   animation: msgIn var(--t-med) var(--ease) both;
 }
-.msg-row.grouped { margin-top: 1px; }
+.msg-row.grouped { margin-top: 3px; }
 .msg-row.me { justify-content: flex-end; }
 
 @keyframes msgIn {
