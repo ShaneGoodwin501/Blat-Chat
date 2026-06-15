@@ -121,14 +121,11 @@
     const grouped = sameAuthor && minutesAgo < 2;
 
     const display = m.display_name || m.username || 'user';
-    const initial = initialsOf(display);
-    const color = avatarColor(String(m.user_id) + ':' + display);
     const userStub = { id: m.user_id, display_name: display, username: m.username, has_avatar: m.has_avatar, online: m.online };
-
-    // Every message gets a real avatar. Even grouped (same author, within
-    // 2 min) — only the name+time meta gets hidden for grouped messages;
-    // the avatar stays so the user can always see who they're looking at.
-    const avatarHtmlStr = avatarHtml(userStub);
+    // Small avatar that lives inside the bubble header. The shared
+    // avatarHtml() builds the same 32px element; the bubble-header CSS
+    // shrinks it to 20px so it sits neatly next to the nickname.
+    const bubbleAvatarHtml = avatarHtml(userStub);
 
     let attachHtml = '';
     if (m.attachment_id && m.attachment_filename) {
@@ -138,52 +135,28 @@
         attachHtml += `<a class="attach-link" href="/uploads/${encodeURIComponent(m.attachment_filename)}" target="_blank" rel="noopener">📎 ${escapeHtml(m.attachment_original || 'file')}</a>`;
       }
     }
-    const metaHtml = grouped ? '' : `
-      <div class="meta">
-        <span class="name">${escapeHtml(display)}</span>
-        <span class="time">${timeOf(m.created_at)}</span>
-      </div>
-    `;
 
-    // Layout: [avatar] [name+time on top, bubble below]. Other users' messages
-    // sit on the left with their avatar on the far left. The user's own
-    // messages sit on the right (avatar on the right, bubble flush-right);
-    // this is driven by the .me class on msg-row, which flex-reverses the row
-    // and aligns the column to the right edge via .body-wrap.me and .msg-col.me.
+    // Layout: a single chat bubble per message. Own messages sit on the
+    // right, others on the left (driven by .bubble.me). The bubble's
+    // header carries a small avatar + nickname + time, so everything the
+    // reader needs is contained inside one tidy card. No external avatar
+    // column, no action chip, no hover buttons. For grouped messages
+    // (same author within 2 min) the header is suppressed so consecutive
+    // bubbles stack into a clean column.
     const isGroupedClass = grouped ? ' grouped' : '';
     const ownClass = isMe ? ' me' : '';
-    // Create the row element up front. (An earlier version of this function
-    // used a `row` variable that was never declared, which made the browser
-    // throw `ReferenceError: row is not defined` on every history event —
-    // meaning the page rendered with ZERO messages even though the server
-    // was sending them.)
+    const headerHtml = grouped ? '' : `
+      <div class="bubble-header">
+        ${bubbleAvatarHtml}
+        <span class="bubble-name">${escapeHtml(display)}</span>
+        <span class="bubble-time">${timeOf(m.created_at)}</span>
+      </div>
+    `;
     const row = document.createElement('div');
     row.className = `msg-row${isGroupedClass}${ownClass}`;
     row.dataset.id = m.id;
     row.dataset.userId = m.user_id;
-    // Action buttons:
-    //   • Copy is always available for own messages (⎘, in the existing
-    //     floating actions area).
-    //   • Delete is intentionally NOT shown on the user's own messages.
-    //     Admins can still delete OTHER people's messages, but the button
-    //     now lives in the top-right corner of the chat bubble itself
-    //     (white X), not in the floating actions chip — per Shane's UX
-    //     request. The click handler in messagesEl already routes
-    //     data-act="delete" to the socket, so we just need a button with
-    //     that data attribute wherever we want it.
-    // Hidden by default; shown on row hover.
-    const canDelete = me && me.role === 'admin' && !isMe;
-    const actionsHtml = isMe ? `
-      <div class="msg-actions">
-        <button type="button" data-act="copy" title="${escapeHtml(t('chat.copy'))}" aria-label="${escapeHtml(t('chat.copy'))}">⎘</button>
-      </div>
-    ` : '';
-    // The white X delete button. Rendered inside .body-wrap so the bubble's
-    // own position:relative can anchor it to its top-right corner.
-    const bubbleDeleteHtml = canDelete ? `
-      <button type="button" class="bubble-delete" data-act="delete" title="${escapeHtml(t('chat.delete'))}" aria-label="${escapeHtml(t('chat.delete'))}">×</button>
-    ` : '';
-    row.innerHTML = `${actionsHtml}${avatarHtmlStr}<div class="msg-col${ownClass}">${metaHtml}<div class="body-wrap${ownClass}">${bubbleDeleteHtml}<div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div></div>`;
+    row.innerHTML = `<div class="bubble${ownClass}">${headerHtml}<div class="body">${m.body ? escapeHtml(m.body) : ''}${attachHtml}</div></div>`;
     messagesEl.appendChild(row);
 
     lastRenderedUserId = m.user_id;
