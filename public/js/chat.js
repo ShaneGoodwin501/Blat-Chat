@@ -5,6 +5,10 @@
   const textInput = document.getElementById('textInput');
   const photoInput = document.getElementById('photoInput');
   const emojiBtn = document.getElementById('emojiBtn');
+  const voiceBtn = document.getElementById('voiceBtn');
+  const recordingIndicator = document.getElementById('recordingIndicator');
+  const recordingTime = document.getElementById('recordingTime');
+  const recordingCancel = document.getElementById('recordingCancel');
   const attachPreview = document.getElementById('attachPreview');
   const attachThumb = document.getElementById('attachThumb');
   const attachName = document.getElementById('attachName');
@@ -99,6 +103,99 @@
     return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   }
 
+  // Format seconds as M:SS. Used by the voice player. Returns "0:00"
+  // for non-finite or negative inputs (browser quirk for some codecs
+  // before metadata loads).
+  function formatDuration(s) {
+    if (!isFinite(s) || s < 0) return '0:00';
+    const total = Math.floor(s);
+    const m = Math.floor(total / 60);
+    const sec = total % 60;
+    return m + ':' + (sec < 10 ? '0' + sec : sec);
+  }
+
+  // Update a voice player's visual state in sync with the <audio>
+  // element. Called from the play/pause click and from the audio
+  // element's native 'ended' / 'pause' / 'play' events (wired up in
+  // wireVoicePlayer()).
+  function setVoiceState(player, state) {
+    if (!player) return;
+    player.dataset.state = state;
+    const btn = player.querySelector('.vp-btn');
+    if (btn) {
+      btn.dataset.state = state;
+      btn.textContent = state === 'playing' ? '\u23F8' : '\u25B6';
+      btn.setAttribute('aria-label', state === 'playing' ? 'Pause' : 'Play');
+    }
+  }
+
+  // Pause every voice <audio> on the page except the one given. Called
+  // before starting a new one, so we don't end up with two voice
+  // messages playing on top of each other.
+  function pauseAllVoiceExcept(except) {
+    document.querySelectorAll('.voice-player audio').forEach((a) => {
+      if (a !== except && !a.paused) {
+        a.pause();
+        const p = a.closest('.voice-player');
+        if (p) setVoiceState(p, 'paused');
+      }
+    });
+  }
+
+  // Wire up the native <audio> events (timeupdate, ended, loadedmetadata)
+  // to drive the visible UI. Called from a MutationObserver that
+  // picks up voice players added by renderMessage(). This avoids
+  // re-binding on every render — just bind once per player.
+  function wireVoicePlayer(player) {
+    if (!player || player._wired) return;
+    player._wired = true;
+    const audio = player.querySelector('audio');
+    if (!audio) return;
+    const btn = player.querySelector('.vp-btn');
+    const timeEl = player.querySelector('[data-act="voice-time"]');
+    const fillEl = player.querySelector('.vp-bar-fill');
+    const trackEl = player.querySelector('[data-act="voice-seek"]');
+    audio.addEventListener('loadedmetadata', () => {
+      // Some browsers report NaN/Infinity for very short WebM blobs
+      // until you seek to a real position. The duration label is
+      // safe to update here; the seek bar's `duration` guard
+      // already handles the NaN case.
+      if (timeEl) timeEl.textContent = formatDuration(audio.duration);
+    });
+    audio.addEventListener('timeupdate', () => {
+      if (timeEl) timeEl.textContent = formatDuration(audio.currentTime);
+      if (fillEl && audio.duration && isFinite(audio.duration)) {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        fillEl.style.width = pct + '%';
+      }
+      if (trackEl) trackEl.setAttribute('aria-valuenow', String(Math.floor((audio.currentTime / (audio.duration || 1)) * 100)));
+    });
+    audio.addEventListener('ended', () => {
+      setVoiceState(player, 'paused');
+      if (fillEl) fillEl.style.width = '0%';
+      if (timeEl) timeEl.textContent = formatDuration(audio.duration);
+      if (trackEl) trackEl.setAttribute('aria-valuenow', '0');
+    });
+    audio.addEventListener('play', () => { if (btn) btn.textContent = '\u23F8'; });
+    audio.addEventListener('pause', () => { if (btn) btn.textContent = '\u25B6'; });
+  }
+
+  // Watch for new voice players being added (initial history + new
+  // live messages) and wire them up.
+  const voiceObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      m.addedNodes.forEach((n) => {
+        if (!(n instanceof HTMLElement)) return;
+        if (n.classList && n.classList.contains('voice-player')) {
+          wireVoicePlayer(n);
+        }
+        // Also pick up nested players (shouldn't happen, but be safe).
+        n.querySelectorAll && n.querySelectorAll('.voice-player').forEach(wireVoicePlayer);
+      });
+    }
+  });
+  voiceObserver.observe(messagesEl, { childList: true, subtree: true });
+
   function renderMessage(m) {
     if (knownMessageIds.has(m.id)) return;
     knownMessageIds.add(m.id);
@@ -131,8 +228,26 @@
     if (m.attachment_id && m.attachment_filename) {
       if (m.attachment_mime && m.attachment_mime.startsWith('image/')) {
         attachHtml += `<img class="attachment" src="/uploads/${encodeURIComponent(m.attachment_filename)}" alt="${escapeHtml(m.attachment_original || 'attachment')}" loading="lazy">`;
+      } else if (m.attachment_mime && m.attachment_mime.startsWith('audio/')) {
+        // Inline voice-message player. A hidden <audio> does the actual
+        // playback (browsers handle codec, streaming, scrubbing, and
+        // audio focus across tabs) — the visible UI is our own
+        // play/pause button, progress bar, and duration label. The
+        // clientId is the message ID, used so multiple players on the
+        // page can be paused when a new one starts.
+        const src = `/uploads/${encodeURIComponent(m.attachment_filename)}`;
+        attachHtml += `
+          <div class="voice-player" data-state="paused" data-msg-id="${m.id}">
+            <button type="button" class="vp-btn" data-act="voice-toggle" data-state="paused" aria-label="Play">\u25B6</button>
+            <div class="vp-track" data-act="voice-seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+              <div class="vp-bar"><div class="vp-bar-fill"></div></div>
+            </div>
+            <span class="vp-time" data-act="voice-time">0:00</span>
+            <audio preload="metadata" src="${src}" data-msg-id="${m.id}"></audio>
+          </div>
+        `;
       } else {
-        attachHtml += `<a class="attach-link" href="/uploads/${encodeURIComponent(m.attachment_filename)}" target="_blank" rel="noopener">📎 ${escapeHtml(m.attachment_original || 'file')}</a>`;
+        attachHtml += `<a class="attach-link" href="/uploads/${encodeURIComponent(m.attachment_filename)}" target="_blank" rel="noopener">\uD83D\uDCCE ${escapeHtml(m.attachment_original || 'file')}</a>`;
       }
     }
 
@@ -516,6 +631,265 @@
 
   attachClear.addEventListener('click', clearAttachment);
 
+  // ---- Voice message recording ----
+  // Mic button starts a recording immediately (no press-and-hold — tap
+  // once to start, hit Send or the cancel ✕ to finish). The recording
+  // state lives in `voiceState` so the submit handler can tell what's
+  // happening. The audio is captured via MediaRecorder, uploaded as a
+  // multipart Blob to /api/upload-audio, then sent through the same
+  // `message` socket event as a photo attachment.
+  const voiceState = {
+    active: false,         // true between startRecording and stop/abort
+    recorder: null,        // MediaRecorder instance
+    stream: null,          // MediaStream (so we can stop the mic tracks)
+    chunks: [],            // recorded Blob chunks
+    startedAt: 0,          // performance.now() at start, for the timer
+    tickHandle: null,      // setInterval handle for the timer label
+    mime: '',              // MIME that MediaRecorder is actually using
+    maxDurationMs: 5 * 60 * 1000, // hard cap = 5 minutes
+  };
+
+  // Pick the first supported MIME from this priority list. Different
+  // browsers support different codecs; we record in whatever the
+  // browser actually supports, then save that exact MIME in the
+  // attachment row so the same <audio> element plays it back.
+  function pickAudioMime() {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+      'audio/ogg',
+    ];
+    if (typeof MediaRecorder === 'undefined') return null;
+    for (const m of candidates) {
+      try {
+        if (MediaRecorder.isTypeSupported(m)) return m;
+      } catch {}
+    }
+    return ''; // let MediaRecorder pick its default
+  }
+
+  function setRecordingUi(on) {
+    const stack = document.querySelector('.composer-stack');
+    if (stack) stack.classList.toggle('recording', !!on);
+    if (recordingIndicator) recordingIndicator.classList.toggle('hidden', !on);
+    if (voiceBtn) voiceBtn.classList.toggle('recording', !!on);
+  }
+
+  function startRecordingTimer() {
+    voiceState.startedAt = performance.now();
+    if (recordingTime) recordingTime.textContent = '0:00';
+    if (voiceState.tickHandle) clearInterval(voiceState.tickHandle);
+    voiceState.tickHandle = setInterval(() => {
+      const elapsed = performance.now() - voiceState.startedAt;
+      if (recordingTime) recordingTime.textContent = formatDuration(elapsed / 1000);
+      // Auto-stop at the duration cap. The user could lose their
+      // message if the timer stops the recorder and we don't catch
+      // the resulting 'stop' event, but the catch is unconditional.
+      if (elapsed >= voiceState.maxDurationMs) {
+        stopRecordingAndSend();
+      }
+    }, 250);
+  }
+
+  function stopRecordingTimer() {
+    if (voiceState.tickHandle) {
+      clearInterval(voiceState.tickHandle);
+      voiceState.tickHandle = null;
+    }
+  }
+
+  function releaseMic() {
+    if (voiceState.stream) {
+      voiceState.stream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+      voiceState.stream = null;
+    }
+  }
+
+  async function startRecording() {
+    if (voiceState.active) return;
+    if (pendingAttachment) {
+      // Don't allow mixing a photo + voice message — clear the photo
+      // first. (Voice messages don't carry a text body either.)
+      clearAttachment();
+    }
+    if (textInput.value) {
+      // Discard any typed text — the send button means "send voice",
+      // not "send text". Visually clear it so the user sees the state.
+      textInput.value = '';
+      autoResize();
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast(t('chat.voice.not_supported'), 'error');
+      return;
+    }
+    const mime = pickAudioMime();
+    if (mime === null) {
+      toast(t('chat.voice.not_supported'), 'error');
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      // NotAllowedError = user denied. NotFoundError = no mic.
+      console.warn('[voice] getUserMedia failed', e);
+      if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) {
+        toast(t('chat.voice.permission_denied'), 'error');
+      } else {
+        toast(t('chat.voice.err.mic'), 'error');
+      }
+      return;
+    }
+    let recorder;
+    try {
+      recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+    } catch (e) {
+      // Some browsers throw if the mimeType isn't actually supported,
+      // even when isTypeSupported returned true earlier. Fall back
+      // with no mime and let the browser pick.
+      console.warn('[voice] MediaRecorder ctor failed, retrying without mime', e);
+      try { recorder = new MediaRecorder(stream); }
+      catch (e2) {
+        releaseMic();
+        toast(t('chat.voice.not_supported'), 'error');
+        return;
+      }
+    }
+    voiceState.active = true;
+    voiceState.recorder = recorder;
+    voiceState.stream = stream;
+    voiceState.chunks = [];
+    voiceState.mime = recorder.mimeType || mime || 'audio/webm';
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) voiceState.chunks.push(e.data);
+    };
+    recorder.onstop = () => onRecorderStop();
+    recorder.onerror = (e) => {
+      console.error('[voice] MediaRecorder error', e);
+      toast(t('chat.voice.err.mic'), 'error');
+      cancelRecording();
+    };
+    setRecordingUi(true);
+    startRecordingTimer();
+    // Start without an explicit timeslice so we get a single blob on
+    // stop (cleaner than slicing every second). The 5-minute cap is
+    // enforced by the timer above, which calls stopRecordingAndSend().
+    recorder.start();
+  }
+
+  function stopRecordingAndSend() {
+    if (!voiceState.active || !voiceState.recorder) return;
+    if (voiceState.recorder.state !== 'inactive') {
+      try { voiceState.recorder.stop(); } catch (e) { console.warn('[voice] stop failed', e); }
+    }
+  }
+
+  function cancelRecording() {
+    if (!voiceState.active) return;
+    if (voiceState.recorder && voiceState.recorder.state !== 'inactive') {
+      try { voiceState.recorder.stop(); } catch {}
+    }
+    // Discard whatever chunks we accumulated.
+    voiceState.chunks = [];
+    voiceState.active = false;
+    stopRecordingTimer();
+    releaseMic();
+    setRecordingUi(false);
+  }
+
+  async function onRecorderStop() {
+    // Called once the recorder has flushed its last chunk and is
+    // inactive. Upload what we have, then send the message. Always
+    // clean up state, even on errors, so the user isn't stuck with
+    // the recording UI.
+    const chunks = voiceState.chunks;
+    const mime = voiceState.mime || 'audio/webm';
+    const duration = (performance.now() - voiceState.startedAt) / 1000;
+    voiceState.active = false;
+    voiceState.recorder = null;
+    stopRecordingTimer();
+    releaseMic();
+    setRecordingUi(false);
+
+    if (!chunks.length) {
+      // User cancelled before any data, or browser produced no audio.
+      return;
+    }
+    const blob = new Blob(chunks, { type: mime });
+    if (blob.size > 10 * 1024 * 1024) {
+      toast(t('chat.voice.too_long'), 'error');
+      return;
+    }
+    if (!socket || !socket.connected) {
+      toast(t('chat.err.disconnected'), 'error');
+      return;
+    }
+    // Upload as multipart/form-data. The server will store the blob
+    // and return an attachment row, which we then attach to a regular
+    // chat message — same code path as a photo.
+    const ext = (() => {
+      const m = mime.toLowerCase();
+      if (m.includes('webm')) return 'webm';
+      if (m.includes('mp4')) return 'm4a';
+      if (m.includes('ogg')) return 'ogg';
+      if (m.includes('mpeg')) return 'mp3';
+      if (m.includes('wav')) return 'wav';
+      if (m.includes('aac')) return 'aac';
+      return 'bin';
+    })();
+    const fd = new FormData();
+    fd.append('audio', blob, `voice-${Date.now()}.${ext}`);
+    fd.append('duration', String(Math.max(0, Math.round(duration))));
+    fd.append('original_name', 'Voice message');
+    let data;
+    try {
+      const r = await fetch('/api/upload-audio', { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (r.status === 401) { window.location.href = '/login'; return; }
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        console.error('[voice] upload failed', err);
+        toast(t('chat.voice.err.upload_failed'), 'error');
+        return;
+      }
+      data = await r.json();
+    } catch (e) {
+      console.error('[voice] upload fetch failed', e);
+      toast(t('chat.voice.err.upload_failed'), 'error');
+      return;
+    }
+    if (!data || !data.attachment || !data.attachment.id) {
+      toast(t('chat.voice.err.upload_failed'), 'error');
+      return;
+    }
+    // Send the message with the new attachment id, no body.
+    socket.emit('message', { body: '', attachment_id: data.attachment.id }, (ack) => {
+      if (ack && !ack.ok && ack.error) {
+        if (ack.error === 'bad_attachment') toast(t('chat.err.bad_attachment'), 'error');
+        else toast(t('chat.err.could_not_send'), 'error');
+      }
+    });
+  }
+
+  if (voiceBtn) {
+    voiceBtn.addEventListener('click', () => {
+      if (voiceState.active) {
+        // Tap-during-recording: treat as stop+send. (The user can hit
+        // Send or the cancel ✕ to abort, but tapping the mic again
+        // should still be a sensible shortcut to finish.)
+        stopRecordingAndSend();
+      } else {
+        startRecording();
+      }
+    });
+  }
+  if (recordingCancel) {
+    recordingCancel.addEventListener('click', () => {
+      cancelRecording();
+    });
+  }
+
   // ---- Emoji picker ----
   // Common emoji set. The picker is a small popover above the button.
   // Tap an emoji to insert it at the cursor position in the textarea.
@@ -595,6 +969,14 @@
 
   composer.addEventListener('submit', (e) => {
     e.preventDefault();
+    // If we're recording, the form submit is the user saying "I'm done,
+    // send the voice message." Stop the recorder; the resulting
+    // recording will be uploaded and sent via the MediaRecorder's
+    // 'stop' handler (see startRecording()).
+    if (voiceState.active) {
+      stopRecordingAndSend();
+      return;
+    }
     const text = textInput.value.trim();
     if (!text && !pendingAttachment) return;
     if (!socket || !socket.connected) { toast(t('chat.err.disconnected'), 'error'); return; }
@@ -889,7 +1271,7 @@
     }
   });
 
-  // ---- Per-message action wiring (copy, delete) ----
+  // ---- Per-message action wiring (copy, delete, voice player) ----
   messagesEl.addEventListener('click', (e) => {
     // Lightbox for image attachments
     const tImg = e.target;
@@ -897,6 +1279,42 @@
       e.preventDefault();
       openLightbox(tImg.src, tImg.alt);
       return;
+    }
+    // Voice message play/pause toggle
+    const voiceBtn = e.target.closest('button[data-act="voice-toggle"]');
+    if (voiceBtn) {
+      const player = voiceBtn.closest('.voice-player');
+      if (!player) return;
+      const audio = player.querySelector('audio');
+      if (!audio) return;
+      if (audio.paused) {
+        // Pause any other playing voice messages first — only one
+        // voice message plays at a time (matches WhatsApp / iMessage).
+        pauseAllVoiceExcept(audio);
+        audio.play().then(() => {
+          setVoiceState(player, 'playing');
+        }).catch((err) => {
+          // Autoplay can fail if the user hasn't interacted with the
+          // document yet. The first play needs a user gesture, which
+          // a click satisfies, so this is rare — log for debugging.
+          console.warn('[voice] play() rejected', err);
+        });
+      } else {
+        audio.pause();
+        setVoiceState(player, 'paused');
+      }
+      return;
+    }
+    // Voice message seek bar
+    const seekTrack = e.target.closest('[data-act="voice-seek"]');
+    if (seekTrack) {
+      const player = seekTrack.closest('.voice-player');
+      if (!player) return;
+      const audio = player.querySelector('audio');
+      if (!audio || !audio.duration || !isFinite(audio.duration)) return;
+      const rect = seekTrack.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      audio.currentTime = ratio * audio.duration;
     }
     // Action button
     const btn = e.target.closest('button[data-act]');

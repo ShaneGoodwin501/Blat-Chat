@@ -915,6 +915,164 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .composer-stack .attach-preview button:hover { color: var(--text); }
 .composer input[type=file] { display: none; }
 
+/* ---- Voice message recording ----
+   The mic button sits inline with the other composer icon buttons.
+   When recording, a small indicator (red dot + timer + cancel) slides
+   in just above the composer — same pattern as the photo attach
+   preview so the UI feels consistent. The textarea/icon-buttons
+   become visually dimmed to make the recording state obvious. */
+.composer .voice-btn.recording {
+  color: #fff;
+  background: #d9384a;
+  border-color: #d9384a;
+  animation: recPulse 1.2s var(--ease) infinite;
+}
+@keyframes recPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 56, 74, 0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(217, 56, 74, 0); }
+}
+.composer-stack .recording {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  padding: 10px 14px;
+  background: rgba(13, 16, 24, 0.92);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+  animation: msgIn var(--t-fast) var(--ease);
+}
+.recording .rec-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #d9384a;
+  box-shadow: 0 0 0 0 rgba(217, 56, 74, 0.6);
+  animation: recPulse 1.2s var(--ease) infinite;
+  flex: 0 0 auto;
+}
+.recording .rec-time {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  color: var(--text);
+  flex: 1 1 auto;
+  font-size: 14px;
+}
+.recording button {
+  background: transparent;
+  border: 0;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  min-height: 0;
+  box-shadow: none;
+}
+.recording button:hover { color: var(--text); background: var(--bg-4); }
+.composer-stack.recording .send-btn {
+  background: #2a7a4d;
+  border-color: #2a7a4d;
+  color: #fff;
+}
+.composer-stack.recording .send-btn:hover { background: #23814f; border-color: #23814f; }
+/* While recording, disable the other composer buttons to keep the
+   state machine obvious — there's exactly one thing to do (hit send
+   or cancel). */
+.composer-stack.recording .emoji-btn,
+.composer-stack.recording .voice-btn,
+.composer-stack.recording textarea,
+.composer-stack.recording [for=photoInput] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---- Inline audio player in chat bubbles ----
+   A custom, low-chrome player: circular play/pause button on the left,
+   duration / progress / status text on the right, hidden <audio>
+   element actually does the playback. The bar is clickable to seek. */
+.voice-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px;
+  min-width: 220px;
+  max-width: 280px;
+  user-select: none;
+}
+.voice-player .vp-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(108, 140, 255, 0.18);
+  border: 1px solid rgba(108, 140, 255, 0.35);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  flex: 0 0 auto;
+  box-shadow: none;
+  min-height: 0;
+  transition: background var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.voice-player .vp-btn:hover { background: rgba(108, 140, 255, 0.3); }
+.voice-player .vp-btn:active { transform: scale(0.95); }
+.voice-player .vp-btn[data-state=playing] {
+  background: rgba(108, 140, 255, 0.32);
+}
+.bubble.me .voice-player .vp-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+.bubble.me .voice-player .vp-btn:hover { background: rgba(255, 255, 255, 0.28); }
+.voice-player .vp-track {
+  flex: 1 1 auto;
+  height: 22px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  min-width: 0;
+}
+.voice-player .vp-bar {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  transform: translateY(-50%);
+  overflow: hidden;
+}
+.voice-player .vp-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0%;
+  background: var(--accent-1, #6ea8ff);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+.bubble.me .voice-player .vp-bar { background: rgba(255, 255, 255, 0.24); }
+.bubble.me .voice-player .vp-bar-fill { background: #fff; }
+.voice-player .vp-time {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  flex: 0 0 auto;
+  text-align: right;
+  min-width: 36px;
+}
+.bubble.me .voice-player .vp-time { color: rgba(255, 255, 255, 0.7); }
+
 /* Subtle disabled state on the composer while a photo is uploading, so
    the user knows the round-trip is in progress and the preview isn't
    "stuck". */
