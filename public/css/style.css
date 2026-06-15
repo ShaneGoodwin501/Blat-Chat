@@ -291,13 +291,8 @@ header.bar h1 {
   align-items: center;
   gap: 8px;
 }
-header.bar h1 .dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--accent-grad);
-  box-shadow: 0 0 10px rgba(108,140,255,0.6);
-}
 header.bar .spacer { flex: 1; }
-/* My avatar in the header — round, fixed size, right-aligned. Shows
+/* My avatar in the header — round, fixed size, left-aligned. Shows
    the photo when one is set, or a coloured initial when it isn't. */
 header.bar .me-avatar {
   width: 40px;
