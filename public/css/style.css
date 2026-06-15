@@ -1028,6 +1028,8 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   border-color: #d9384a;
   color: #fff;
   min-width: 56px;
+  min-height: 42px;
+  height: 42px;
   padding: 0 18px;
   display: grid;
   place-items: center;
