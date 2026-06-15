@@ -9,17 +9,7 @@
   <link rel="stylesheet" href="/css/style.css?v=38">
 </head>
 <body>
-  <script>
-    // iOS Safari viewport-height fix. See index.html for details.
-    (function () {
-      function setAppHeight() {
-        document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
-      }
-      setAppHeight();
-      window.addEventListener('resize', setAppHeight);
-      window.addEventListener('orientationchange', setAppHeight);
-    })();
-  </script>
+  <script src="/js/viewport-height.js?v=1"></script>
   <main class="login-page">
     <form class="login-card" id="loginForm" autocomplete="on">
       <div class="brand"><div class="dot"></div></div>
