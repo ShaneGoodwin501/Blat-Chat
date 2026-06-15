@@ -672,77 +672,110 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 }
 .avatar.online .online-dot { display: block; }
 
-/* Copy button on own message hover. (Delete was here previously — it
-   now lives inside the chat bubble itself, see .bubble-delete below.) */
-.msg-row .msg-actions {
-  display: none;
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: var(--bg-3);
-  border: 1px solid var(--border-2);
-  border-radius: var(--r-sm);
-  padding: 2px;
-  gap: 2px;
+/* ---- Message rows & bubbles ----
+   Each message is a single .msg-row containing one .bubble. Own
+   messages (.me) sit on the right; others sit on the left. The
+   bubble's header carries a small avatar, nickname, and time. No
+   action buttons, no hover chips, no white X — chat is just chat. */
+.msg-row {
+  display: flex;
+  margin-top: 6px;
+  animation: msgIn var(--t-med) var(--ease) both;
 }
-.msg-row.me .msg-actions,
-.msg-row .msg-actions:hover { display: flex; }
-.msg-row .msg-actions button {
-  background: transparent;
-  border: 0;
-  color: var(--text-dim);
-  font-size: 14px;
-  padding: 4px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  min-height: 0;
-  box-shadow: none;
-}
-.msg-row .msg-actions button:hover { color: var(--text); background: var(--bg-4); }
-.msg-row.me { position: relative; }
-.msg-row.me .msg-actions { right: auto; left: 4px; }
+.msg-row.grouped { margin-top: 1px; }
+.msg-row.me { justify-content: flex-end; }
 
-/* Delete (white X) — anchored to the top-right corner of the chat
-   bubble itself. .body-wrap is position:relative, so the absolute
-   positioning lands inside the bubble's padding. Hidden until the
-   message row is hovered. Only rendered on rows where canDelete is
-   true (admin viewing OTHER people's messages). */
-.body-wrap .bubble-delete {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  /* The generic `button` rule sets min-height: 42px (it assumes every
-     button is a full-size form submit). We need a small clickable target
-     in the bubble corner, so zero it out. Same for the box-shadow and
-     gradient background — both look wrong on a corner icon. */
-  min-height: 0;
-  display: none;
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.bubble {
+  /* Subtle near-bg colour, one notch brighter than the page so the
+     bubble reads as a card without shouting. Avatar + name + time
+     sit inside the header so each message is self-contained. */
+  background: var(--bubble-other);
+  color: var(--bubble-other-text);
+  border: 1px solid var(--bubble-other-border);
+  border-radius: var(--r-lg);
+  padding: 8px 12px 9px;
+  max-width: min(560px, 80%);
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bubble.me {
+  background: var(--bubble-me-bg);
+  border-color: var(--bubble-me-border);
+}
+
+.bubble-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.28);
-  border: 0;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 16px;
-  font-weight: 400;
+  gap: 8px;
+  font-size: 12px;
   line-height: 1;
-  padding: 0;
-  cursor: pointer;
+  /* Subtle baseline separation between the sender line and the body. */
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 2px;
+}
+.bubble-header .bubble-name {
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.01em;
+}
+.bubble-header .bubble-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+/* Slightly brighter header text for own messages so it reads against
+   the brighter own-bubble background. */
+.bubble.me .bubble-header .bubble-name { color: rgba(255, 255, 255, 0.85); }
+.bubble.me .bubble-header .bubble-time { color: rgba(255, 255, 255, 0.65); }
+
+/* Shrink the shared avatar element (default 32px) to 20px so it sits
+   neatly inline with the nickname. */
+.bubble-header .avatar,
+.bubble-header .avatar-wrap {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
   box-shadow: none;
-  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  font-size: 10px;
 }
-.body-wrap .bubble-delete:hover { filter: none; transform: none; }
-.msg-row:hover .body-wrap .bubble-delete { display: flex; }
-.body-wrap .bubble-delete:hover {
-  background: rgba(220, 50, 70, 0.85);
-  color: #fff;
+.bubble-header .avatar-img,
+.bubble-header .avatar > img.avatar-img {
+  width: 20px;
+  height: 20px;
 }
-.body-wrap .bubble-delete:focus-visible {
-  outline: 2px solid var(--accent-1);
-  outline-offset: 1px;
+.bubble-header .online-dot { display: none; }
+
+.bubble .body { white-space: pre-wrap; }
+.bubble .body img.attachment {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: var(--r-md);
+  margin-top: 6px;
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease);
 }
+.bubble .body img.attachment:hover { transform: scale(1.01); }
+.bubble .body a.attach-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--accent-3);
+}
+.bubble.me .body a.attach-link { color: rgba(255, 255, 255, 0.92); }
 
 /* "Message deleted" tombstone. */
 .msg-deleted {
@@ -774,35 +807,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   background: var(--border);
 }
 
-.msg-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-top: 6px;
-  animation: msgIn var(--t-med) var(--ease) both;
-}
-.msg-row.grouped { margin-top: 0; }
-/* NOTE: every message keeps its avatar — we used to hide .avatar on grouped
-   rows, but that left whole stretches of messages with no sender icon. The
-   meta (name+time) is already hidden for grouped rows, which is the actual
-   visual "grouped" indicator we want. */
-
-/* Own messages: avatar on the right, bubble flush to the right edge */
-.msg-row.me {
-  flex-direction: row-reverse;
-}
-.msg-row.me .msg-col {
-  align-items: flex-end;
-}
-.msg-row.me .msg-col .meta {
-  margin: 0 2px 2px 0; /* mirror the default left margin so time sits flush-right */
-}
-
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .avatar {
   width: 32px;
   height: 32px;
@@ -818,76 +822,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   overflow: hidden;
   background: var(--bg-3);
 }
-.msg-row .avatar-img,
-.msg-row .avatar > img.avatar-img {
-  width: 32px;
-  height: 32px;
-  object-fit: cover;
-}
-
-.msg-col {
-  display: flex;
-  flex-direction: column;
-  min-width: 0; /* let text wrap inside the bubble */
-  max-width: min(560px, 80%);
-}
-
-.msg-col .meta {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  margin: 0 0 2px 2px;
-}
-.msg-row:not(.grouped) .msg-col .meta { margin-bottom: 4px; }
-.msg-col .meta .name {
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-.msg-col.me .meta .name { color: rgba(255,255,255,0.85); }
-.msg-col .meta .time {
-  font-size: 11px;
-  color: var(--text-faint);
-}
-.msg-col.me .meta .time { color: rgba(255,255,255,0.65); }
-
-.body-wrap {
-  padding: 9px 14px 8px;
-  border-radius: var(--r-lg);
-  background: var(--bubble-other);
-  color: var(--bubble-other-text);
-  border: 1px solid var(--bubble-other-border);
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-  position: relative;
-  min-width: 0;
-}
-.body-wrap.me {
-  background: var(--bubble-me-bg);
-  color: var(--bubble-me-text);
-  border-color: var(--bubble-me-border);
-}
-.body-wrap .body { white-space: pre-wrap; }
-.body-wrap .body img.attachment {
-  display: block;
-  max-width: 100%;
-  max-height: 320px;
-  border-radius: var(--r-md);
-  margin-top: 6px;
-  cursor: pointer;
-  transition: transform var(--t-fast) var(--ease);
-}
-.body-wrap .body img.attachment:hover { transform: scale(1.01); }
-.body-wrap .body a.attach-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  font-size: 13px;
-  color: var(--accent-3);
-}
-.body-wrap.me .body a.attach-link { color: rgba(255,255,255,0.92); }
 
 /* ---- Composer ---- */
 /* .composer-stack wraps the attach-preview (absolutely positioned
