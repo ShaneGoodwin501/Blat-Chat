@@ -345,13 +345,20 @@
   // iOS Safari, which sharp can't).
   async function canvasCompress(file, maxEdge = 1600, quality = 0.85) {
     if (!file.type || !file.type.startsWith('image/')) return file;
-    const blobUrl = URL.createObjectURL(file);
+    // Use a data: URL (not blob:) — our CSP has img-src 'self' data: only,
+    // so blob: URLs get blocked when the canvas tries to load the image.
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(new Error('read failed'));
+      r.readAsDataURL(file);
+    });
     try {
       const img = await new Promise((resolve, reject) => {
         const im = new Image();
         im.onload = () => resolve(im);
         im.onerror = () => reject(new Error('decode failed'));
-        im.src = blobUrl;
+        im.src = dataUrl;
       });
       let w = img.naturalWidth, h = img.naturalHeight;
       if (!w || !h) return file;
@@ -370,8 +377,6 @@
     } catch (e) {
       console.warn('[composer] canvas compress failed, uploading original', e);
       return file;
-    } finally {
-      URL.revokeObjectURL(blobUrl);
     }
   }
 
