@@ -823,20 +823,12 @@
 
   // ---- Scroll / load-older wiring ----
   const loadOlderBtn = document.getElementById('loadOlderBtn');
-  const scrollBottomBtn = document.getElementById('scrollBottomBtn');
   const typingIndicator = document.getElementById('typingIndicator');
 
   // Track which message IDs we know about and the oldest we've seen.
   let oldestId = null;
   let isLoadingOlder = false;
   let noMoreHistory = false;
-  // Track "stuck at bottom" state for the scroll-to-bottom FAB.
-  let stuckAtBottom = true;
-
-  function updateScrollUI() {
-    if (stuckAtBottom) scrollBottomBtn.classList.add('hidden');
-    else scrollBottomBtn.classList.remove('hidden');
-  }
 
   function isAtBottom() {
     // 24px tolerance so we still treat "almost at the bottom" as at-bottom.
@@ -844,8 +836,6 @@
   }
 
   messagesEl.addEventListener('scroll', () => {
-    stuckAtBottom = isAtBottom();
-    updateScrollUI();
     // If the user scrolls all the way to the top, show the "Load older" button.
     if (messagesEl.scrollTop < 40 && oldestId && !isLoadingOlder && !noMoreHistory) {
       loadOlderBtn.classList.remove('hidden');
@@ -889,8 +879,8 @@
         }
         // Restore scroll position so the user sees the same messages.
         messagesEl.scrollTop = prevTop + (messagesEl.scrollHeight - prevHeight);
-        // If we've never scrolled away from the bottom, stay glued.
-        if (stuckAtBottom) scrollToBottom(false);
+        // If we were at the bottom before loading older, stay glued.
+        if (isAtBottom()) scrollToBottom(false);
       });
     } else {
       isLoadingOlder = false;
@@ -898,8 +888,6 @@
       loadOlderBtn.textContent = originalText;
     }
   });
-
-  scrollBottomBtn.addEventListener('click', () => scrollToBottom(true));
 
   // ---- Per-message action wiring (copy, delete) ----
   messagesEl.addEventListener('click', (e) => {
@@ -1032,8 +1020,6 @@
       noMoreHistory = rows.length < 50;
       rows.forEach(renderMessage);
       scrollToBottom(false);
-      stuckAtBottom = true;
-      updateScrollUI();
       // Show the "Load older" button if we got the full page of history.
       if (rows.length >= 50 && !noMoreHistory) {
         loadOlderBtn.classList.remove('hidden');
@@ -1043,7 +1029,7 @@
       renderMessage(m);
       oldestId = oldestId == null ? m.id : Math.min(oldestId, m.id);
       // Auto-scroll only if the user was already at the bottom.
-      if (stuckAtBottom) scrollToBottom();
+      if (isAtBottom()) scrollToBottom();
       // Browser notification if the tab is hidden and user opted in.
       showMessageNotification(m);
     });

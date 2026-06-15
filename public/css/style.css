@@ -612,28 +612,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .load-older:hover { color: var(--text); background: var(--bg-4); }
 .load-older:disabled { opacity: 0.5; cursor: default; }
 
-/* Scroll-to-bottom FAB — bottom-right of the chat pane, shown when
-   the user has scrolled up. */
-.scroll-bottom {
-  position: absolute;
-  right: 16px;
-  bottom: 88px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--bg-3);
-  border: 1px solid var(--border-2);
-  color: var(--text);
-  font-size: 18px;
-  cursor: pointer;
-  box-shadow: var(--shadow-2);
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  animation: msgIn var(--t-fast) var(--ease);
-}
-.scroll-bottom:hover { background: var(--bg-4); }
-
 /* Typing indicator — sits between messages and composer, slides in. */
 .typing {
   padding: 6px 20px 4px;
