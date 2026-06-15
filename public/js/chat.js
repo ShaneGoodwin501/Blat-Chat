@@ -1231,6 +1231,38 @@
     }
   }
 
+  // Scroll to the bottom, but only after any pending <img> elements in
+  // the messages container finish loading. Each image that loads grows
+  // scrollHeight, which would otherwise strand the user mid-chat.
+  // Used both for the initial history load and for new image messages.
+  function scrollToBottomWhenReady() {
+    const pending = [...messagesEl.querySelectorAll('img')].filter(img => !img.complete);
+    if (pending.length === 0) {
+      scrollToBottom(false);
+      scrollBottomBtn.classList.add('hidden');
+      return;
+    }
+    let remaining = pending.length;
+    const onSettle = () => {
+      if (--remaining > 0) return;
+      scrollToBottom(false);
+      scrollBottomBtn.classList.add('hidden');
+    };
+    pending.forEach(img => {
+      img.addEventListener('load', onSettle, { once: true });
+      img.addEventListener('error', onSettle, { once: true });
+    });
+    // Safety net: if an image never fires load/error (rare, but
+    // happens with data: URLs on some browsers), settle after 1.5s.
+    setTimeout(() => {
+      if (remaining > 0) {
+        remaining = 0;
+        scrollToBottom(false);
+        scrollBottomBtn.classList.add('hidden');
+      }
+    }, 1500);
+  }
+
   messagesEl.addEventListener('scroll', () => {
     // If the user scrolls all the way to the top, show the "Load older" button.
     if (messagesEl.scrollTop < 40 && oldestId && !isLoadingOlder && !noMoreHistory) {
@@ -1461,40 +1493,8 @@
       oldestId = rows.length ? rows[0].id : null;
       noMoreHistory = rows.length < 50;
       rows.forEach(renderMessage);
-      // Scroll to the bottom once the messages have settled. We have
-      // to wait for two things: (1) the DOM to be laid out (next
-      // animation frame), and (2) any inline images to finish loading,
-      // because each image grows scrollHeight and would otherwise
-      // leave the user stranded in the middle of the chat.
-      const scrollToBottomWhenReady = () => {
-        const pending = [...messagesEl.querySelectorAll('img')]
-          .filter(img => !img.complete);
-        if (pending.length === 0) {
-          scrollToBottom(false);
-          scrollBottomBtn.classList.add('hidden');
-          return;
-        }
-        let remaining = pending.length;
-        const onSettle = () => {
-          if (--remaining > 0) return;
-          scrollToBottom(false);
-          scrollBottomBtn.classList.add('hidden');
-        };
-        pending.forEach(img => {
-          img.addEventListener('load', onSettle, { once: true });
-          img.addEventListener('error', onSettle, { once: true });
-        });
-        // Safety net: even if an image never fires load/error (rare,
-        // but happens with data: URLs in some browsers), settle after
-        // 1.5s so the user isn't stuck.
-        setTimeout(() => {
-          if (remaining > 0) {
-            remaining = 0;
-            scrollToBottom(false);
-            scrollBottomBtn.classList.add('hidden');
-          }
-        }, 1500);
-      };
+      // Wait for the DOM to be laid out, then for any inline images
+      // to load, before scrolling to the bottom.
       requestAnimationFrame(scrollToBottomWhenReady);
       // Show the "Load older" button if we got the full page of history.
       if (rows.length >= 50 && !noMoreHistory) {
@@ -1511,8 +1511,10 @@
       renderMessage(m);
       oldestId = oldestId == null ? m.id : Math.min(oldestId, m.id);
       if (wasAtBottom) {
-        scrollToBottom();
-        scrollBottomBtn.classList.add('hidden');
+        // Use the image-aware scroll so the user lands on the bottom
+        // of the fully-loaded image, not the bottom of the not-yet-
+        // loaded placeholder.
+        requestAnimationFrame(scrollToBottomWhenReady);
       } else {
         scrollBottomBtn.classList.remove('hidden');
       }
