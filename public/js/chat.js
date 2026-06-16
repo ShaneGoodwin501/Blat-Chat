@@ -1082,7 +1082,8 @@
   }
   textInput.addEventListener('input', autoResize);
   textInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Enter inserts a newline (default textarea behaviour). Shift+Enter sends.
+    if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault();
       composer.requestSubmit();
     }
