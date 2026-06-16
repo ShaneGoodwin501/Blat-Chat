@@ -504,10 +504,11 @@ body.fs-fallback #menuDropdown { display: none !important; }
 .dropdown .danger { color: var(--danger); }
 .dropdown .danger .ico { color: var(--danger); }
 /* Secondary language label on the Language menu button. Inherits color
-   and font-size from the parent .dropdown button so the two words look
-   identical. Hidden when the active language is already Russian, to
-   avoid "Язык / Язык" redundancy. */
-.dropdown .lang-secondary { margin-left: 2px; }
+   and font-size from the parent .dropdown button. The .lang-label wrapper
+   keeps the primary + secondary text as ONE flex item so the button's
+   12px flex gap only applies between the icon and the label, not
+   between the two words. Hidden when the active language is already
+   Russian, to avoid "Язык / Язык" redundancy. */
 html[lang="ru"] .dropdown .lang-secondary { display: none; }
 
 /* ----- Avatar cropper modal ----- */
