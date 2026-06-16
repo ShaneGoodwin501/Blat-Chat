@@ -8,11 +8,15 @@ to every authenticated member.
 
 - 🔐 User accounts with bcrypt-hashed passwords (admin creates users)
 - 💬 Single shared chat room — everyone sees the same history
-- 📷 Photo uploads (JPG, PNG, GIF, WebP) up to 5MB, stored on the server
+- 📷 Photo uploads (JPG, PNG, GIF, WebP) up to 10MB, stored on the server
+- 🎤 Voice messages via the browser's MediaRecorder, up to 5 minutes
 - 🌓 Dark theme, white text, mobile-friendly responsive layout
 - 🪪 Change your nickname in chat at any time
 - 🛠 Admin page: create, rename, reset password, promote/demote, disable, delete
+- 🧹 Danger zone: bulk-delete all messages or "keep last N days"
+- 🌐 Bilingual UI: English + Russian, switchable per-user
 - 🔌 Real-time over WebSockets (Socket.IO) with HTTP polling fallback
+- 📱 PWA-installable (iOS via Share → Add to Home Screen, Android via the manifest)
 - 🔒 HTTPS-only in production (nginx + Let's Encrypt; see `deploy/setup-https.sh`)
 
 ## Stack
@@ -87,17 +91,29 @@ set `.env`, install the systemd unit, set up nginx + Let's Encrypt.
 │   ├── db.js              # SQLite schema
 │   ├── sockets.js         # Socket.IO message + nickname
 │   └── routes/
-│       ├── auth.js        # /api/auth/{login,logout,me}
+│       ├── auth.js        # /api/auth/{login,logout,me,password,avatar,preferred-language}
 │       ├── chat.js        # /api/messages
-│       ├── admin.js       # /api/admin/users
-│       └── upload.js      # /api/upload
+│       ├── admin.js       # /api/admin/{users,messages}
+│       ├── upload.js      # /api/{upload,upload-audio}
+│       ├── avatar.js      # /api/auth/avatar
+│       └── settings.js    # /api/{settings,admin/settings}
 ├── public/
 │   ├── login.html
 │   ├── index.html         # main chat
 │   ├── admin.html         # user management
 │   ├── 403.html
+│   ├── manifest.json      # PWA manifest
+│   ├── icons/             # PWA icons
 │   ├── css/style.css
-│   └── js/{login,chat,admin}.js
+│   └── js/
+│       ├── ui.js          # shared utilities (escapeHtml, modal, toast, …)
+│       ├── i18n.js        # EN+RU translations
+│       ├── viewport-height.js
+│       ├── password-reveal.js
+│       ├── avatar-crop.js
+│       ├── login.js
+│       ├── chat.js
+│       └── admin.js
 └── deploy/
     ├── blatchat.service
     ├── nginx.conf         # HTTPS-only site config (substitute your domain)

@@ -14,14 +14,29 @@ function verifyPassword(plain, hash) {
   return bcrypt.compareSync(plain, hash);
 }
 
-// Express middleware: 401 if not logged in
+// Express middleware: 401 if not logged in.
+//
+// /api/* paths always get a JSON 401, even if the Accept header would
+// prefer HTML. The previous implementation used `req.accepts('html')`
+// as a proxy for "is this a browser navigation?" — but fetch() calls
+// from chat.js don't set an Accept header (so it defaults to */*, and
+// Express's content negotiation picks html), which sent 302 redirects
+// to /login. The browser followed the redirect, got the login page
+// HTML (200), and the client crashed trying to JSON.parse it.
+//
+// HTML routes (/) keep the redirect-to-login behaviour so the user
+// gets a normal browser experience when they hit the site directly.
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) return next();
-  if (req.accepts('html') && !req.xhr) return res.redirect('/login');
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'not_authenticated' });
+  }
+  if (req.accepts('html')) return res.redirect('/login');
   return res.status(401).json({ error: 'not_authenticated' });
 }
 
-// Express middleware: 403 if not admin
+// Express middleware: 403 if not admin. Always JSON (only ever used on
+// /api/admin/* routes, so no HTML-redirect ambiguity).
 function requireAdmin(req, res, next) {
   if (!req.session || !req.session.userId) return res.status(401).json({ error: 'not_authenticated' });
   if (req.session.role !== 'admin') return res.status(403).json({ error: 'forbidden' });

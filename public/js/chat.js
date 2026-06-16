@@ -41,29 +41,7 @@
   let lastRenderedUserId = null;
   let lastRenderedTime = null;
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  // Stable per-user color from a hash (used for initials fallback).
-  function avatarColor(seed) {
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-    const hue = Math.abs(h) % 360;
-    return `linear-gradient(135deg, hsl(${hue} 70% 60%) 0%, hsl(${(hue + 40) % 360} 70% 50%) 100%)`;
-  }
-  function initialsOf(name) {
-    const s = String(name || '?').trim();
-    if (!s) return '?';
-    const parts = s.split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
+  const { escapeHtml, avatarColor, initialsOf, toast, showInfoModal, showModal, api } = window.UI;
   // Cache-busted avatar URL for a given user id.
   function avatarUrl(userId) {
     return `/avatars/${encodeURIComponent(userId)}?v=${me && me.id === userId ? myAvatarVersion : 0}`;
@@ -142,7 +120,7 @@
     if (btn) {
       btn.dataset.state = state;
       btn.textContent = state === 'playing' ? '\u23F8' : '\u25B6';
-      btn.setAttribute('aria-label', state === 'playing' ? 'Pause' : 'Play');
+      btn.setAttribute('aria-label', state === 'playing' ? t('voice.pause') : t('voice.play'));
     }
   }
 
@@ -255,8 +233,8 @@
         const src = `/uploads/${encodeURIComponent(m.attachment_filename)}`;
         attachHtml += `
           <div class="voice-player" data-state="paused" data-msg-id="${m.id}">
-            <button type="button" class="vp-btn" data-act="voice-toggle" data-state="paused" aria-label="Play">\u25B6</button>
-            <div class="vp-track" data-act="voice-seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+            <button type="button" class="vp-btn" data-act="voice-toggle" data-state="paused" aria-label="${escapeHtml(t('voice.play'))}">\u25B6</button>
+            <div class="vp-track" data-act="voice-seek" role="slider" aria-label="${escapeHtml(t('voice.seek'))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
               <div class="vp-bar"><div class="vp-bar-fill"></div></div>
             </div>
             <span class="vp-time" data-act="voice-time">0:00</span>
@@ -305,14 +283,6 @@
     messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
   }
 
-  function toast(msg, kind = 'info') {
-    const t = document.createElement('div');
-    t.className = 'toast' + (kind === 'error' ? ' error' : kind === 'success' ? ' success' : '');
-    t.textContent = msg;
-    toastStack.appendChild(t);
-    setTimeout(() => t.remove(), 3200);
-  }
-
   // ---- iOS PWA install instructions (in the hamburger menu) ----
   // iOS Safari doesn't expose a JS install prompt — users have to do it
   // manually via the Share sheet. We surface an "Install app" entry in
@@ -327,28 +297,6 @@
     // iPadOS 13+ reports as Mac with touch points — still treat as iOS.
     if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
     return false;
-  }
-  function showInfoModal({ title, body }) {
-    return new Promise((resolve) => {
-      const backdrop = document.createElement('div');
-      backdrop.className = 'modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="modal" role="dialog" aria-modal="true">
-          <h3>${escapeHtml(title)}</h3>
-          <div class="form-rows">${body}</div>
-          <div class="form-actions">
-            <button type="button" class="secondary" id="infoModalOk">${escapeHtml(t('pwa.install.got_it'))}</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-      const close = () => { backdrop.remove(); resolve(); };
-      backdrop.querySelector('#infoModalOk').addEventListener('click', close);
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
-      // Close on Escape
-      const onKey = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
-      document.addEventListener('keydown', onKey);
-    });
   }
   const installBtn = document.getElementById('installBtn');
   if (installBtn) {
@@ -375,52 +323,6 @@
     });
   }
 
-  // ---- Modal (used for password change) ----
-  function showModal({ title, body, primaryLabel, onSubmit }) {
-    return new Promise((resolve) => {
-      const backdrop = document.createElement('div');
-      backdrop.className = 'modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="modal" role="dialog" aria-modal="true">
-          <h3>${escapeHtml(title)}</h3>
-          <form id="modalForm" autocomplete="off">
-            <div class="form-rows">${body}</div>
-            <div class="err" id="modalErr"></div>
-            <div class="form-actions">
-              <button type="button" class="secondary" id="modalCancel">${escapeHtml(t('common.cancel'))}</button>
-              <button type="submit">${escapeHtml(primaryLabel || t('common.save'))}</button>
-            </div>
-          </form>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-      // Wire any password fields inside the modal with the show/hide eye.
-      if (window.wirePasswordReveal) window.wirePasswordReveal(backdrop);
-      const form = backdrop.querySelector('#modalForm');
-      const err = backdrop.querySelector('#modalErr');
-      const cancel = backdrop.querySelector('#modalCancel');
-      const firstInput = form.querySelector('input,textarea,select');
-      if (firstInput) setTimeout(() => firstInput.focus(), 50);
-
-      const close = (val) => { backdrop.remove(); resolve(val); };
-      cancel.addEventListener('click', () => close(null));
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(null); });
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        err.textContent = '';
-        const data = {};
-        new FormData(form).forEach((v, k) => { data[k] = v; });
-        try {
-          const result = await onSubmit(data, err);
-          if (result === true || result === undefined) close(data);
-          else if (typeof result === 'string') err.textContent = result;
-        } catch (ex) {
-          err.textContent = ex.message || t('misc.failed');
-        }
-      });
-    });
-  }
-
   function openLightbox(src, alt) {
     lightboxImg.src = src;
     lightboxImg.alt = alt || '';
@@ -435,14 +337,9 @@
   lightboxClose.addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
 
-  // Click any image attachment in the message list → open lightbox (not new tab).
-  messagesEl.addEventListener('click', (e) => {
-    const t = e.target;
-    if (t && t.tagName === 'IMG' && t.classList && t.classList.contains('attachment')) {
-      e.preventDefault();
-      openLightbox(t.src, t.alt);
-    }
-  });
+  // (Image attachment clicks are handled by the consolidated message
+  // click handler below — voice-toggle, voice-seek, and the lightbox
+  // open path all live there now.)
 
   // ---- Menu (hamburger) ----
   function setMenuOpen(open) {
@@ -531,17 +428,28 @@
     setFullscreenBtnState();
   }
 
-  // Global Escape: close lightbox first, then menu
+  // Global Escape: close lightbox first, then emoji popover, then menu
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!lightbox.classList.contains('hidden')) { closeLightbox(); return; }
+    if (emojiPopover) { closeEmojiPopover(); return; }
     if (!menuDropdown.classList.contains('hidden')) { setMenuOpen(false); return; }
   });
 
   async function loadMe() {
-    const r = await fetch('/api/auth/me');
+    let r;
+    try {
+      r = await fetch('/api/auth/me');
+    } catch (_) {
+      window.location.href = '/login';
+      return null;
+    }
     if (r.status === 401) { window.location.href = '/login'; return null; }
-    const data = await r.json();
+    if (!r.ok) { window.location.href = '/login'; return null; }
+    let data;
+    try { data = await r.json(); }
+    catch (_) { window.location.href = '/login'; return null; }
+    if (!data || !data.user) { window.location.href = '/login'; return null; }
     me = data.user;
     renderMeAvatar();
     if (me.role === 'admin') adminLink.classList.remove('hidden');
@@ -1159,12 +1067,16 @@
         toast(t('chat.toast.profile_updated'), 'success');
         if (socket && socket.connected) socket.emit('set_avatar', { has_avatar: true });
         renderMeAvatar();
-        // Force every already-rendered avatar image of mine to refresh
+        // Force every already-rendered avatar image of mine to refresh.
+        // We identify "mine" by the URL path (no other user's avatar
+        // image will have /avatars/<my-id>). The previous version
+        // also matched on `im.alt === me.display_name`, which
+        // would incorrectly refresh OTHER users' avatars with the
+        // same display name as me.
         document.querySelectorAll('img.avatar-img').forEach((im) => {
-          // Bump the cache-buster query
           try {
             const u = new URL(im.src, location.origin);
-            if (u.pathname === avatarUrl(me.id).split('?')[0] || im.alt === me.display_name) {
+            if (u.pathname === avatarUrl(me.id).split('?')[0]) {
               im.src = avatarUrl(me.id);
             }
           } catch {}
@@ -1320,6 +1232,11 @@
     socket.emit('set_display_name', next, (ack) => {
       if (ack && ack.ok) {
         me.display_name = ack.display_name;
+        // Re-render the header avatar so the new initial shows up.
+        // Without this, the me-avatar keeps showing the OLD initial
+        // (the alt + fallback derive from me.display_name) until
+        // the next page load.
+        renderMeAvatar();
         toast(t('chat.toast.nickname_updated'), 'success');
       } else toast(t('chat.toast.nickname_failed'), 'error');
     });
@@ -1489,7 +1406,14 @@
     }
   });
 
-  // ---- Per-message action wiring (copy, delete, voice player) ----
+  // ---- Per-message interaction (lightbox, voice play/pause, seek) ----
+  // Note: the previous version also handled `data-act="delete"` and
+  // `data-act="copy"` buttons here, but those buttons are never
+  // rendered in the message template (intentional — chat bubbles have
+  // no per-message action UI today). Leaving the dead code would just
+  // be misleading; the socket-side `delete_message` event is still
+  // wired and can be invoked by the admin danger zone (which deletes
+  // the whole chat, not individual messages).
   messagesEl.addEventListener('click', (e) => {
     // Lightbox for image attachments
     const tImg = e.target;
@@ -1559,47 +1483,6 @@
       const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       audio.currentTime = ratio * audio.duration;
     }
-    // Action button
-    const btn = e.target.closest('button[data-act]');
-    if (btn) {
-      const row = btn.closest('.msg-row');
-      if (!row) return;
-      const id = Number(row.dataset.id);
-      const act = btn.dataset.act;
-      if (act === 'delete') {
-        if (!confirm(t('chat.delete_confirm'))) return;
-        if (socket && socket.connected) {
-          socket.emit('delete_message', id, (ack) => {
-            if (ack && ack.ok) {
-              removeMessage(id);
-            } else if (ack && ack.error) {
-              toast(ack.error === 'forbidden' ? t('chat.delete') + ': ' + t('misc.failed') : t('misc.failed'), 'error');
-            }
-          });
-        }
-      } else if (act === 'copy') {
-        const body = row.querySelector('.body');
-        const text = body ? body.innerText.trim() : '';
-        if (!text) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(
-            () => toast(t('chat.copied'), 'success'),
-            () => toast(t('misc.failed'), 'error')
-          );
-        } else {
-          // Fallback for older browsers.
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          try { document.execCommand('copy'); toast(t('chat.copied'), 'success'); }
-          catch { toast(t('misc.failed'), 'error'); }
-          ta.remove();
-        }
-      }
-    }
   });
 
   // ---- Typing indicator ----
@@ -1624,10 +1507,17 @@
       typingIndicator.classList.add('hidden');
     }
   }
+  // Track which user-ids have a pending drop-typing timer. When a new
+  // 'typing' event arrives for the same user, we cancel the previous
+  // timer so it can't fire later and remove the entry while the user
+  // is still actively typing.
+  const typingTimers = new Map();
   function dropTypingAfter(userId, ms) {
-    setTimeout(() => {
+    if (typingTimers.has(userId)) clearTimeout(typingTimers.get(userId));
+    typingTimers.set(userId, setTimeout(() => {
+      typingTimers.delete(userId);
       if (typingUsers.delete(userId)) renderTyping();
-    }, ms);
+    }, ms));
   }
 
   // Emit a typing event 800ms after the user starts typing, then refresh

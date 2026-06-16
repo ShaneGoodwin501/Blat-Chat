@@ -6,6 +6,8 @@
 // onSaved() so the caller can update its own state.
 
 (function () {
+  const { escapeHtml } = window.UI;
+
   function el(tag, attrs, ...children) {
     const e = document.createElement(tag);
     if (attrs) for (const k of Object.keys(attrs)) {
@@ -19,10 +21,6 @@
       e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
     }
     return e;
-  }
-
-  function escapeHtml(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   function makeModal({ title, onSave, onRemove }) {
@@ -130,8 +128,12 @@
             imgEl = el('img', { src: dataUrl, alt: '', class: 'crop-image', draggable: 'false' });
             stage.appendChild(imgEl);
             placeholder.classList.add('hidden');
+            // Re-binding drag for a freshly picked file: tear down the
+            // previous window listeners (they reference the old closure
+            // and would leak) before binding new ones.
+            if (typeof teardownDrag === 'function') teardownDrag();
+            teardownDrag = attachDrag();
             fitToStage();
-            attachDrag();
             saveBtn.disabled = false;
             removeBtn.classList.remove('hidden');
             // Lock the file input so picking the same file again re-triggers change
@@ -175,6 +177,17 @@
       }
 
       function attachDrag() {
+        // Track window-level listeners so we can clean them up in
+        // cleanup() — otherwise they leak across modal open/close
+        // cycles, accumulating handlers that hold references to the
+        // (now-removed) modal elements. Each open used to add 4 window
+        // listeners; after 10 visits, 40 stale listeners all firing on
+        // every mouse/touch event across the whole app.
+        const windowListeners = [];
+        function addWindow(target, type, fn) {
+          target.addEventListener(type, fn);
+          windowListeners.push([target, type, fn]);
+        }
         const onDown = (e) => {
           dragging = true;
           stage.classList.add('dragging');
@@ -192,11 +205,11 @@
         };
         const onUp = () => { dragging = false; stage.classList.remove('dragging'); };
         stage.addEventListener('mousedown', onDown);
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
+        addWindow(window, 'mousemove', onMove);
+        addWindow(window, 'mouseup', onUp);
         stage.addEventListener('touchstart', onDown, { passive: false });
-        window.addEventListener('touchmove', onMove, { passive: false });
-        window.addEventListener('touchend', onUp);
+        addWindow(window, 'touchmove', onMove, { passive: false });
+        addWindow(window, 'touchend', onUp);
         zoomRange.addEventListener('input', () => {
           state.scale = Number(zoomRange.value);
           apply();
@@ -210,7 +223,15 @@
           zoomRange.value = String(state.scale);
           apply();
         }, { passive: false });
+        // Return a teardown that the outer cleanup() can call.
+        return () => {
+          for (const [t, type, fn] of windowListeners) {
+            t.removeEventListener(type, fn);
+          }
+        };
       }
+
+      let teardownDrag = attachDrag();
 
       function pointer(e) {
         if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -299,6 +320,10 @@
       function cleanup() {
         backdrop.removeEventListener('click', closeOnOutside);
         document.removeEventListener('keydown', escHandler);
+        // Remove the window-level drag listeners so they don't leak
+        // past the modal's lifetime. (See attachDrag() for context.)
+        if (typeof teardownDrag === 'function') teardownDrag();
+        teardownDrag = null;
         if (imgEl && imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
         backdrop.remove();
       }

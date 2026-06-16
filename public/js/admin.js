@@ -8,81 +8,9 @@
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
   const logoutBtn = document.getElementById('logoutBtn');
-  const toastStack = document.getElementById('toastStack');
   const langBtns = document.querySelectorAll('.lang-btn');
 
-  function escapeHtml(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-  function avatarColor(seed) {
-    let h = 0;
-    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
-    const hue = Math.abs(h) % 360;
-    return `linear-gradient(135deg, hsl(${hue} 70% 60%) 0%, hsl(${(hue + 40) % 360} 70% 50%) 100%)`;
-  }
-  function initialsOf(name) {
-    const s = String(name || '?').trim();
-    if (!s) return '?';
-    const parts = s.split(/\s+/);
-    return parts.length === 1 ? parts[0].slice(0, 2).toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  function toast(msg, kind = 'info') {
-    const t = document.createElement('div');
-    t.className = 'toast' + (kind === 'error' ? ' error' : kind === 'success' ? ' success' : '');
-    t.textContent = msg;
-    toastStack.appendChild(t);
-    setTimeout(() => t.remove(), 3200);
-  }
-  async function api(path, opts = {}) {
-    const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
-    if (r.status === 401) { window.location.href = '/login'; return null; }
-    if (r.status === 403) { window.location.href = '/403'; return null; }
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  }
-  function showModal({ title, body, primaryLabel, onSubmit }) {
-    return new Promise((resolve) => {
-      const backdrop = document.createElement('div');
-      backdrop.className = 'modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="modal" role="dialog" aria-modal="true">
-          <h3>${escapeHtml(title)}</h3>
-          <form id="modalForm" autocomplete="off">
-            <div>${body}</div>
-            <div class="err" id="modalErr"></div>
-            <div class="form-actions">
-              <button type="button" class="secondary" id="modalCancel">${escapeHtml(t('common.cancel'))}</button>
-              <button type="submit">${escapeHtml(primaryLabel)}</button>
-            </div>
-          </form>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-      if (window.wirePasswordReveal) window.wirePasswordReveal(backdrop);
-      const form = backdrop.querySelector('#modalForm');
-      const err = backdrop.querySelector('#modalErr');
-      const cancel = backdrop.querySelector('#modalCancel');
-      const firstInput = form.querySelector('input,textarea,select');
-      if (firstInput) setTimeout(() => firstInput.focus(), 50);
-      const close = (val) => { backdrop.remove(); resolve(val); };
-      cancel.addEventListener('click', () => close(null));
-      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(null); });
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        err.textContent = '';
-        const data = {};
-        new FormData(form).forEach((v, k) => { data[k] = v; });
-        try {
-          const result = await onSubmit(data, err);
-          if (result === true || result === undefined) close(data);
-          else if (typeof result === 'string') err.textContent = result;
-        } catch (ex) {
-          err.textContent = ex.message || 'Failed.';
-        }
-      });
-    });
-  }
+  const { escapeHtml, avatarColor, initialsOf, toast, showModal, api } = window.UI;
 
   function render(users) {
     if (!users.length) {

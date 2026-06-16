@@ -192,7 +192,6 @@ button.ghost:hover { color: var(--text); background: var(--bg-3); }
 .login-page {
   /* --app-height is set by the inline script in login.html so the page
      fits the iOS viewport exactly (no URL-bar overflow). */
-  min-height: var(--app-height, 100dvh);
   min-height: 100dvh;
   display: grid;
   place-items: center;
@@ -1024,7 +1023,11 @@ html:not([lang="ru"]) .dropdown .lang-ru { display: none; }
      textarea from shrinking below one word's width. Set it to 0 so the
      flex shorthand can actually compress it. */
   min-width: 0;
-  font-size: 15px;
+  /* iOS Safari zooms the page on input focus if the input's computed
+     font-size is below 16px (in some iOS versions/builds even on iOS
+     17+). Bumping to 16px suppresses this — chat bubbles still look
+     fine at the same size. */
+  font-size: 16px;
   line-height: 1.4;
   padding: 10px 14px;
   border-radius: var(--r-md);
@@ -1553,32 +1556,6 @@ html:not([lang="ru"]) .dropdown .lang-ru { display: none; }
 }
 .toast.error { border-color: rgba(255,84,112,0.4); color: #ffb1c0; }
 .toast.success { border-color: rgba(45,212,163,0.4); color: #a9f0d6; }
-/* iOS PWA hint: a dismissable, longer-lived version of the toast. Stops
-   the .toast auto-fadeout animation from running by overriding it. */
-.toast.pwa-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  max-width: 360px;
-  text-align: left;
-  line-height: 1.4;
-  border-color: rgba(95,167,241,0.35);
-  animation: toastIn var(--t-med) var(--ease) forwards;
-}
-.toast.pwa-hint .pwa-hint-body { flex: 1 1 auto; min-width: 0; }
-.toast.pwa-hint .pwa-hint-close {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 0;
-  color: var(--text-dim);
-  font-size: 20px;
-  line-height: 1;
-  padding: 2px 6px;
-  cursor: pointer;
-  border-radius: var(--r-sm);
-  margin: -2px -4px 0 0;
-}
-.toast.pwa-hint .pwa-hint-close:hover { color: var(--text); background: var(--bg-4); }
 @keyframes toastIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes toastOut { to   { opacity: 0; transform: translateY(8px); } }
 
