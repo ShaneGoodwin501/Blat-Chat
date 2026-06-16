@@ -503,13 +503,13 @@ body.fs-fallback #menuDropdown { display: none !important; }
 }
 .dropdown .danger { color: var(--danger); }
 .dropdown .danger .ico { color: var(--danger); }
-/* Secondary language label on the Language menu button. Inherits color
-   and font-size from the parent .dropdown button. The .lang-label wrapper
-   keeps the primary + secondary text as ONE flex item so the button's
-   12px flex gap only applies between the icon and the label, not
-   between the two words. Hidden when the active language is already
-   Russian, to avoid "Язык / Язык" redundancy. */
-html[lang="ru"] .dropdown .lang-secondary { display: none; }
+/* Secondary language labels on the Language menu button. Each has a
+   direction class (.lang-en, .lang-ru) so CSS can show the right one
+   based on the current language and put the alternate in parens. The
+   .lang-label wrapper keeps them as ONE flex item so the button's
+   12px flex gap only applies between the icon and the label. */
+html[lang="ru"] .dropdown .lang-en { display: none; }
+html:not([lang="ru"]) .dropdown .lang-ru { display: none; }
 
 /* ----- Avatar cropper modal ----- */
 .avatar-modal { width: min(420px, 96vw); }
