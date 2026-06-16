@@ -760,7 +760,11 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   border-radius: var(--r-lg);
   padding: 8px 12px 9px;
   max-width: min(900px, 95%);
-  min-width: 0;
+  /* Every bubble is at least ~2/3 of the row, no matter how short the
+     text. On a 393px iPhone that's ~240px (row = viewport minus 32px
+     of .messages padding) — a "hi" or "ok" still reads as a real
+     message rather than a floating word. */
+  min-width: 66.67%;
   word-wrap: break-word;
   overflow-wrap: anywhere;
   position: relative;
@@ -817,6 +821,9 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .bubble-header .online-dot { display: none; }
 
 .bubble .body { white-space: pre-wrap; }
+/* Own bubbles are right-aligned on the screen; right-align the body text
+   too so short messages don't sit in the middle of the now-wide bubble. */
+.bubble.me .body { text-align: right; }
 .bubble .body img.attachment {
   display: block;
   max-width: 100%;
