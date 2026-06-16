@@ -39,6 +39,9 @@
       // Header / menu
       'header.signed_in_as': 'Signed in as',
       'header.menu': 'Menu',
+      'header.fullscreen': 'Fullscreen',
+      'header.fullscreen_enter': 'Enter fullscreen',
+      'header.fullscreen_exit': 'Exit fullscreen',
       'menu.profile_photo': 'Profile photo',
       'menu.change_nickname': 'Change nickname',
       'menu.change_password': 'Change password',
@@ -265,6 +268,9 @@
 
       'header.signed_in_as': '\u0412\u043E\u0448\u043B\u0438 \u043A\u0430\u043A',
       'header.menu': '\u041C\u0435\u043D\u044E',
+      'header.fullscreen': '\u041D\u0430 \u0432\u0435\u0441\u044C \u044D\u043A\u0440\u0430\u043D',
+      'header.fullscreen_enter': '\u0420\u0430\u0437\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043D\u0430 \u0432\u0435\u0441\u044C \u044D\u043A\u0440\u0430\u043D',
+      'header.fullscreen_exit': '\u0412\u044B\u0439\u0442\u0438 \u0438\u0437 \u043F\u043E\u043B\u043D\u043E\u044D\u043A\u0440\u0430\u043D\u043D\u043E\u0433\u043E \u0440\u0435\u0436\u0438\u043C\u0430',
       'menu.profile_photo': '\u0424\u043E\u0442\u043E \u043F\u0440\u043E\u0444\u0438\u043B\u044F',
       'menu.change_nickname': '\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043D\u0438\u043A',
       'menu.change_password': '\u0421\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0430\u0440\u043E\u043B\u044C',

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0a0b10">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=42">
+  <link rel="stylesheet" href="/css/style.css?v=43">
 </head>
 <body>
   <div class="app">
@@ -14,6 +14,20 @@
       <div class="me-avatar" id="meAvatar" aria-label="My profile"></div>
       <h1><span data-i18n="app.brand">FAMILY-CHAT</span></h1>
       <span class="spacer"></span>
+      <button class="icon-btn" id="fullscreenBtn" aria-label="Fullscreen" data-i18n-aria="header.fullscreen" title="Fullscreen">
+        <svg class="fs-icon fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V4h5"/>
+          <path d="M20 9V4h-5"/>
+          <path d="M4 15v5h5"/>
+          <path d="M20 15v5h-5"/>
+        </svg>
+        <svg class="fs-icon fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 4v5H4"/>
+          <path d="M15 4v5h5"/>
+          <path d="M9 20v-5H4"/>
+          <path d="M15 20v-5h5"/>
+        </svg>
+      </button>
       <button class="menu-btn" id="menuBtn" aria-label="Menu" data-i18n-aria="header.menu" title="Menu" aria-haspopup="true" aria-expanded="false">
         <span class="bar"></span>
         <span class="bar"></span>
@@ -79,11 +93,11 @@
 
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-  <script src="/js/viewport-height.js?v=5"></script>
-  <script src="/js/i18n.js?v=7"></script>
+  <script src="/js/viewport-height.js?v=6"></script>
+  <script src="/js/i18n.js?v=8"></script>
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=30"></script>
+  <script src="/js/chat.js?v=32"></script>
 </body>
 </html>

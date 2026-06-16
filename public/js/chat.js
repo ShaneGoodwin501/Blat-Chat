@@ -16,6 +16,7 @@
   const meAvatar = document.getElementById('meAvatar');
   const menuBtn = document.getElementById('menuBtn');
   const menuDropdown = document.getElementById('menuDropdown');
+  const fullscreenBtn = document.getElementById('fullscreenBtn');
   const nickBtn = document.getElementById('nickBtn');
   const pwBtn = document.getElementById('pwBtn');
   const langBtn = document.getElementById('langBtn');
@@ -402,6 +403,42 @@
   menuDropdown.addEventListener('click', (e) => {
     if (e.target.closest('button, a')) setMenuOpen(false);
   });
+
+  // ---- Fullscreen toggle (iOS Safari uses webkit-prefixed API) ----
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+  function enterFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) {
+      try { req.call(el); } catch (_) { /* user-gesture or permission issue */ }
+    }
+  }
+  function exitFullscreen() {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) {
+      try { exit.call(document); } catch (_) {}
+    }
+  }
+  function setFullscreenBtnState() {
+    if (!fullscreenBtn) return;
+    fullscreenBtn.classList.toggle('fs-active', isFullscreen());
+    const i18nKey = isFullscreen() ? 'header.fullscreen_exit' : 'header.fullscreen_enter';
+    fullscreenBtn.setAttribute('data-i18n-aria', i18nKey);
+    // Re-apply current language so the label updates
+    if (typeof window.callI18n === 'function') window.callI18n(fullscreenBtn);
+  }
+  if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', () => {
+      if (isFullscreen()) exitFullscreen();
+      else enterFullscreen();
+    });
+    ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
+      document.addEventListener(ev, setFullscreenBtnState);
+    });
+    setFullscreenBtnState();
+  }
 
   // Global Escape: close lightbox first, then menu
   document.addEventListener('keydown', (e) => {

@@ -354,6 +354,29 @@ header.bar a.btn, header.bar button.link {
 }
 header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); background: var(--bg-3); text-decoration: none; }
 
+/* ----- Icon buttons in the header (fullscreen, future ones) ----- */
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+.icon-btn:hover { background: var(--bg-4); color: var(--text); }
+.icon-btn:active { background: var(--bg-3); }
+.icon-btn .fs-icon { width: 20px; height: 20px; display: block; }
+.icon-btn .fs-exit { display: none; }
+.icon-btn.fs-active .fs-enter { display: none; }
+.icon-btn.fs-active .fs-exit { display: block; }
+
 /* ----- Hamburger menu button + dropdown ----- */
 .menu-btn {
   width: 40px;
