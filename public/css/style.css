@@ -643,7 +643,6 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
   display: flex;
   flex-direction: column;
   gap: 4px;
-  scroll-behavior: smooth;
   scrollbar-gutter: stable;
 }
 .messages::-webkit-scrollbar { width: 8px; }
