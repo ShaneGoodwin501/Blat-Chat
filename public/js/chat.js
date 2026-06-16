@@ -313,6 +313,41 @@
     setTimeout(() => t.remove(), 3200);
   }
 
+  // ---- iOS PWA install hint (one-time) ----
+  // Shown only on iPhone/iPad on the first visit, then never again. Tells
+  // the user they can install the chat as a PWA for true fullscreen (no URL
+  // bar, no Safari chrome) — because the Fullscreen API doesn't work on
+  // iOS Safari for non-video elements.
+  function isIOSDevice() {
+    const ua = navigator.userAgent;
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    // iPadOS 13+ reports as Mac with touch points — still treat as iOS.
+    if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
+    return false;
+  }
+  function showPwaHint() {
+    if (!toastStack) return;
+    if (!isIOSDevice()) return;
+    // If the user has already installed the PWA, no hint needed.
+    if (window.navigator.standalone === true) return;
+    try {
+      if (localStorage.getItem('blatchat_pwa_hint_seen')) return;
+    } catch (_) { /* localStorage may be disabled — proceed without remembering */ }
+    const el = document.createElement('div');
+    el.className = 'toast pwa-hint';
+    el.setAttribute('role', 'status');
+    el.innerHTML = `
+      <div class="pwa-hint-body" data-i18n="pwa.hint.body">Want true fullscreen? In Safari, tap Share, then “Add to Home Screen”. Launch the chat from your home screen for an app-like experience.</div>
+      <button class="pwa-hint-close" type="button" aria-label="Dismiss" data-i18n-aria="pwa.hint.dismiss">×</button>
+    `;
+    toastStack.appendChild(el);
+    if (typeof window.callI18n === 'function') window.callI18n(el);
+    el.querySelector('.pwa-hint-close').addEventListener('click', () => {
+      el.remove();
+      try { localStorage.setItem('blatchat_pwa_hint_seen', '1'); } catch (_) {}
+    });
+  }
+
   // ---- Modal (used for password change) ----
   function showModal({ title, body, primaryLabel, onSubmit }) {
     return new Promise((resolve) => {
@@ -1691,6 +1726,10 @@
 
   (async function init() {
     await loadMe();
-    if (me) connect();
+    if (me) {
+      connect();
+      // Show the iOS PWA install hint after a short delay (first visit only).
+      setTimeout(showPwaHint, 2500);
+    }
   })();
 })();
