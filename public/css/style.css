@@ -52,15 +52,23 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  /* Height tracks the *visual* viewport, not the layout viewport. On iOS
-     Safari, when the iOS keyboard pops up, the layout viewport stays the
-     same size (window.innerHeight doesn't update) but the visual viewport
-     shrinks. The viewport-height.js script writes visualViewport.height
-     to --app-height; using it here means the html + body themselves
-     shrink with the keyboard, so there's no empty body space below the
-     .app for the user to scroll into. The 100dvh fallback is the same
-     value on modern iOS, and a sensible default elsewhere. */
-  height: var(--app-height, 100dvh);
+  /* Body height uses 100dvh, NOT var(--app-height) and NOT 100%.
+     - 100% resolves to the layout viewport on iOS, which is the full
+       screen (852 on iPhone 14 Pro) regardless of the bottom tab bar
+       or keyboard — leaves an empty gap below the .app that the user
+       can scroll into.
+     - var(--app-height) is set by viewport-height.js, but on iPhone 14
+       Pro with the bottom tab bar, visualViewport.height is full
+       screen (852), not 769. The Math.min in the JS brings the
+       keyboard case down to 422, but the tab-bar case is still wrong.
+     - 100dvh on iOS tracks the tab bar (excludes shrinkable browser
+       UI), so it returns 769 with the tab bar visible. It does NOT
+       update for the keyboard, so the JS still needs to override
+       --app-height for the keyboard case. The body stays at 100dvh
+       (the tab-bar-aware value) and the .app uses --app-height (which
+       is 422 when the keyboard is up, 769 otherwise). The body is
+       always >= the .app, so the .app never overflows. */
+  height: 100dvh;
   background: var(--bg-0);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
