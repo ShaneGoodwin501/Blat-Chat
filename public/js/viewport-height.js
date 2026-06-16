@@ -46,6 +46,19 @@
     const dvhH = getDvhPx();
     const h = Math.min(vvH, dvhH);
     document.documentElement.style.setProperty('--app-height', h + 'px');
+    // Force scroll back to 0. On iOS Safari, when the keyboard pops up
+    // the page gets scrolled to keep the focused input visible, and that
+    // scroll position is preserved when the keyboard dismisses — leaving
+    // the page scrolled with the header cut off at the top and the
+    // composer hidden behind the URL bar at the bottom. Resetting to 0
+    // on every viewport change keeps the page anchored. `overflow:
+    // hidden` on the body alone doesn't prevent this on iOS — you have
+    // to also explicitly reset the scroll position.
+    try {
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    } catch (_) { /* ignore */ }
   }
 
   setAppHeight();

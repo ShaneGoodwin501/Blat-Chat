@@ -52,22 +52,22 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  /* Body height uses 100dvh, NOT var(--app-height) and NOT 100%.
-     - 100% resolves to the layout viewport on iOS, which is the full
-       screen (852 on iPhone 14 Pro) regardless of the bottom tab bar
-       or keyboard — leaves an empty gap below the .app that the user
-       can scroll into.
-     - var(--app-height) is set by viewport-height.js, but on iPhone 14
-       Pro with the bottom tab bar, visualViewport.height is full
-       screen (852), not 769. The Math.min in the JS brings the
-       keyboard case down to 422, but the tab-bar case is still wrong.
-     - 100dvh on iOS tracks the tab bar (excludes shrinkable browser
-       UI), so it returns 769 with the tab bar visible. It does NOT
-       update for the keyboard, so the JS still needs to override
-       --app-height for the keyboard case. The body stays at 100dvh
-       (the tab-bar-aware value) and the .app uses --app-height (which
-       is 422 when the keyboard is up, 769 otherwise). The body is
-       always >= the .app, so the .app never overflows. */
+  /* Lock the body in place. On iOS Safari (and Chrome on iOS — same
+     WebKit), `overflow: hidden` on the body does NOT reliably prevent
+     the user from scrolling the page, especially after the keyboard
+     has been shown and dismissed (iOS preserves the scroll position).
+     `position: fixed` + `inset: 0` is the only reliable lock — it
+     removes the body from the normal flow AND pins it to the viewport.
+     Combined with the JS in viewport-height.js that calls
+     `window.scrollTo(0, 0)` whenever the viewport changes, the page
+     stays anchored to the top. */
+  position: fixed;
+  inset: 0;
+  /* Height uses 100dvh so the body is the tab-bar-aware size on iPhone
+     14 Pro (769) instead of the full 852. 100dvh does NOT update for
+     the keyboard on iOS, but that's fine — the .app uses --app-height
+     (set by viewport-height.js) for the keyboard case, and the body
+     being >= .app means the .app never overflows. */
   height: 100dvh;
   background: var(--bg-0);
   color: var(--text);
@@ -77,12 +77,8 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* Lock the page like an app: no body scroll, no rubber-band bounce. */
   overflow: hidden;
-  /* iOS Safari: clip any horizontal overflow. The body can be pushed wider
-     than the viewport by children with min-width (the dropdown, the voice
-     player), and when that happens iOS zooms out the whole page, which
-     makes everything look "too wide AND too tall" on the iPhone. */
+  /* iOS Safari: clip any horizontal overflow. */
   max-width: 100vw;
   overscroll-behavior: none;
   -webkit-text-size-adjust: 100%;
