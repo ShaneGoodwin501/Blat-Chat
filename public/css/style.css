@@ -503,10 +503,11 @@ body.fs-fallback #menuDropdown { display: none !important; }
 }
 .dropdown .danger { color: var(--danger); }
 .dropdown .danger .ico { color: var(--danger); }
-/* Secondary language label on the Language menu button. Dimmed so the
-   primary translation stays the focus. Hidden when the active language
-   is already Russian, to avoid "Язык / Язык" redundancy. */
-.dropdown .lang-secondary { color: var(--text-dim); margin-left: 2px; }
+/* Secondary language label on the Language menu button. Inherits color
+   and font-size from the parent .dropdown button so the two words look
+   identical. Hidden when the active language is already Russian, to
+   avoid "Язык / Язык" redundancy. */
+.dropdown .lang-secondary { margin-left: 2px; }
 html[lang="ru"] .dropdown .lang-secondary { display: none; }
 
 /* ----- Avatar cropper modal ----- */
