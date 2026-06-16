@@ -377,6 +377,33 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .icon-btn.fs-active .fs-enter { display: none; }
 .icon-btn.fs-active .fs-exit { display: block; }
 
+/* iOS PWA install instructions modal — auto-numbered with a CSS counter */
+.modal .install-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  line-height: 1.4;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  counter-increment: install-step;
+}
+.modal .install-step:first-child { border-top: 0; }
+.modal .install-step::before {
+  content: counter(install-step);
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-grid;
+  place-items: center;
+  margin-top: 1px;
+}
+.modal .form-rows { counter-reset: install-step; }
 /* ----- Fallback fullscreen (iOS Safari path) -----
    The Fullscreen API doesn't work on iOS Safari for non-video elements.
    When the real API fails, we toggle body.fs-fallback and hide the in-page

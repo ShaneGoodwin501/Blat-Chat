@@ -313,11 +313,11 @@
     setTimeout(() => t.remove(), 3200);
   }
 
-  // ---- iOS PWA install hint (one-time) ----
-  // Shown only on iPhone/iPad on the first visit, then never again. Tells
-  // the user they can install the chat as a PWA for true fullscreen (no URL
-  // bar, no Safari chrome) — because the Fullscreen API doesn't work on
-  // iOS Safari for non-video elements.
+  // ---- iOS PWA install instructions (in the hamburger menu) ----
+  // iOS Safari doesn't expose a JS install prompt — users have to do it
+  // manually via the Share sheet. We surface an "Install app" entry in
+  // the hamburger menu (visible only on iOS) that opens a modal with
+  // step-by-step instructions. The user can come back to it any time.
   function isIOSDevice() {
     const ua = navigator.userAgent;
     if (/iPad|iPhone|iPod/.test(ua)) return true;
@@ -325,26 +325,45 @@
     if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
     return false;
   }
-  function showPwaHint() {
-    if (!toastStack) return;
-    if (!isIOSDevice()) return;
-    // If the user has already installed the PWA, no hint needed.
-    if (window.navigator.standalone === true) return;
-    try {
-      if (localStorage.getItem('blatchat_pwa_hint_seen')) return;
-    } catch (_) { /* localStorage may be disabled — proceed without remembering */ }
-    const el = document.createElement('div');
-    el.className = 'toast pwa-hint';
-    el.setAttribute('role', 'status');
-    el.innerHTML = `
-      <div class="pwa-hint-body" data-i18n="pwa.hint.body">Want true fullscreen? In Safari, tap Share, then “Add to Home Screen”. Launch the chat from your home screen for an app-like experience.</div>
-      <button class="pwa-hint-close" type="button" aria-label="Dismiss" data-i18n-aria="pwa.hint.dismiss">×</button>
-    `;
-    toastStack.appendChild(el);
-    if (typeof window.callI18n === 'function') window.callI18n(el);
-    el.querySelector('.pwa-hint-close').addEventListener('click', () => {
-      el.remove();
-      try { localStorage.setItem('blatchat_pwa_hint_seen', '1'); } catch (_) {}
+  function showInfoModal({ title, body }) {
+    return new Promise((resolve) => {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true">
+          <h3>${escapeHtml(title)}</h3>
+          <div class="form-rows">${body}</div>
+          <div class="form-actions">
+            <button type="button" class="secondary" id="infoModalOk">${escapeHtml(t('pwa.install.got_it'))}</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      const close = () => { backdrop.remove(); resolve(); };
+      backdrop.querySelector('#infoModalOk').addEventListener('click', close);
+      backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+      // Close on Escape
+      const onKey = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
+      document.addEventListener('keydown', onKey);
+    });
+  }
+  const installBtn = document.getElementById('installBtn');
+  if (installBtn) {
+    // Only show on iOS, and only if the user hasn't already installed the PWA.
+    if (isIOSDevice() && window.navigator.standalone !== true) {
+      installBtn.classList.remove('hidden');
+    }
+    installBtn.addEventListener('click', () => {
+      const steps = [
+        t('pwa.install.step1'),
+        t('pwa.install.step2'),
+        t('pwa.install.step3'),
+        t('pwa.install.step4'),
+      ].map((s) => `<div class="install-step">${escapeHtml(s)}</div>`).join('');
+      showInfoModal({
+        title: t('pwa.install.title'),
+        body: `<p>${escapeHtml(t('pwa.install.intro'))}</p>${steps}`,
+      });
     });
   }
 
@@ -1727,10 +1746,6 @@
 
   (async function init() {
     await loadMe();
-    if (me) {
-      connect();
-      // Show the iOS PWA install hint after a short delay (first visit only).
-      setTimeout(showPwaHint, 2500);
-    }
+    if (me) connect();
   })();
 })();

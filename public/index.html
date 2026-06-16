@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <title data-i18n="app.title">FAMILY-CHAT</title>
   <meta name="blatchat-lang" content="__BLATCHAT_LANG__">
-  <link rel="stylesheet" href="/css/style.css?v=48">
+  <link rel="stylesheet" href="/css/style.css?v=49">
 </head>
 <body>
   <div class="app">
@@ -45,6 +45,7 @@
         <button id="pwBtn" role="menuitem" type="button"><span class="ico">&#x1F512;</span> <span data-i18n="menu.change_password">Change password</span></button>
         <button id="langBtn" role="menuitem" type="button"><span class="ico">&#x1F310;</span> <span class="lang-label"><span data-i18n="menu.language">Language</span> <span class="lang-secondary lang-en">/ Язык</span><span class="lang-secondary lang-ru">/ Language</span></span></button>
         <button id="notifBtn" role="menuitem" type="button"><span class="ico">&#x1F514;</span> <span id="notifBtnLabel" data-i18n="chat.notif.enable">Notifications</span></button>
+        <button id="installBtn" class="hidden" role="menuitem" type="button"><span class="ico">&#x1F4F2;</span> <span data-i18n="menu.install_app">Install app</span></button>
         <a    id="adminLink" class="hidden" role="menuitem" href="/admin"><span class="ico">&#x2699;</span> <span data-i18n="menu.admin">Admin</span></a>
         <div class="divider"></div>
         <button id="logoutBtn" class="danger" role="menuitem" type="button"><span class="ico">&#x238B;</span> <span data-i18n="menu.sign_out">Sign out</span></button>
@@ -100,10 +101,10 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
   <script src="/js/viewport-height.js?v=6"></script>
-  <script src="/js/i18n.js?v=11"></script>
+  <script src="/js/i18n.js?v=12"></script>
   <script src="/js/password-reveal.js?v=3"></script>
   <script src="/js/avatar-crop.js?v=3"></script>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/chat.js?v=35"></script>
+  <script src="/js/chat.js?v=36"></script>
 </body>
 </html>
