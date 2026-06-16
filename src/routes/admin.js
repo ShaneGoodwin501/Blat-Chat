@@ -1,11 +1,65 @@
-// Admin routes: create, update, disable, delete users.
+// Admin routes: create, update, disable, delete users; bulk message admin.
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const { requireAdmin, hashPassword } = require('../auth');
 
-function buildAdminRouter(db) {
+function buildAdminRouter(db, getIo, dataDir) {
   const router = express.Router();
 
   router.use(requireAdmin);
+
+  // Resolve the Socket.IO server lazily — by the time the first request
+  // hits this router, `server.js` has already created it. Passing a getter
+  // (rather than the instance) avoids a TDZ error during module wiring.
+  function io() { return typeof getIo === 'function' ? getIo() : getIo; }
+
+  // ---- Orphan-attachment cleanup helper ----
+  // After bulk-deleting messages, find attachment rows that no longer
+  // back any remaining message, delete the file on disk, then drop the row.
+  // Returns the number of attachment files actually removed.
+  function purgeOrphanAttachments() {
+    const orphanIds = db.prepare(`
+      SELECT id, filename FROM attachments
+      WHERE id NOT IN (SELECT DISTINCT attachment_id FROM messages WHERE attachment_id IS NOT NULL)
+    `).all();
+    if (!orphanIds.length) return 0;
+    const uploadsDir = dataDir ? path.join(dataDir, 'uploads') : null;
+    const delFile = db.prepare('DELETE FROM attachments WHERE id = ?');
+    let removed = 0;
+    const tx = db.transaction((rows) => {
+      for (const row of rows) {
+        if (uploadsDir) {
+          const fp = path.join(uploadsDir, row.filename);
+          try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch { /* swallow; row still gets deleted */ }
+        }
+        delFile.run(row.id);
+        removed++;
+      }
+    });
+    tx(orphanIds);
+    return removed;
+  }
+
+  // Emit a fresh "history" snapshot to every connected socket. The chat
+  // client already handles this event by replacing the message list, so
+  // a bulk delete "just works" on every connected client without any
+  // per-message bookkeeping.
+  function broadcastHistory() {
+    const sio = io();
+    if (!sio) return;
+    const recent = db.prepare(`
+      SELECT m.id, m.user_id, m.body, m.attachment_id, m.created_at,
+             u.display_name, u.username, u.has_avatar,
+             a.filename AS attachment_filename, a.original_name AS attachment_original, a.mime AS attachment_mime
+      FROM messages m
+      JOIN users u ON u.id = m.user_id
+      LEFT JOIN attachments a ON a.id = m.attachment_id
+      ORDER BY m.id DESC
+      LIMIT 50
+    `).all().reverse();
+    sio.emit('history', recent);
+  }
 
   // List users
   router.get('/users', (req, res) => {
@@ -88,6 +142,51 @@ function buildAdminRouter(db) {
     }
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
     res.json({ ok: true });
+  });
+
+  // ---- Bulk message admin ----
+  // All-or-nothing confirmation token; client must echo it back. Prevents
+  // accidental triggers (typos, double-clicks, misbehaving UI).
+  // The same token is used for every variant so a stale UI prompt can't
+  // approve a different delete by accident.
+  function checkConfirmToken(req, res) {
+    const expected = req.body?.confirm;
+    if (expected !== 'DELETE MESSAGES') {
+      res.status(400).json({ error: 'bad_confirm' });
+      return false;
+    }
+    return true;
+  }
+
+  // Delete every message in the chat. Returns counts so the UI can
+  // confirm what was actually removed.
+  router.delete('/messages', express.json(), (req, res) => {
+    if (!checkConfirmToken(req, res)) return;
+    const before = db.prepare('SELECT COUNT(*) AS c FROM messages').get().c;
+    db.prepare('DELETE FROM messages').run();
+    const attachmentsRemoved = purgeOrphanAttachments();
+    broadcastHistory();
+    res.json({ ok: true, deleted: before, attachments_removed: attachmentsRemoved });
+  });
+
+  // Delete messages older than N days. Hardcoded variants we expose —
+  // the client picks one and we validate it server-side. Keeping this
+  // explicit (rather than `:days` param) means a client bug or a
+  // tampered request can't mass-prune by surprise.
+  const ALLOWED_OLDER_THAN = new Set([5, 30, 90, 365]);
+  router.delete('/messages/older-than/:days', express.json(), (req, res) => {
+    if (!checkConfirmToken(req, res)) return;
+    const days = Number(req.params.days);
+    if (!ALLOWED_OLDER_THAN.has(days)) return res.status(400).json({ error: 'bad_days' });
+    // SQLite's datetime('now', '-N days') gives us a stable UTC string
+    // we can compare against the stored datetime('now') default.
+    const cutoff = db.prepare(`SELECT datetime('now', ? || ' days') AS c`).get(`-${days}`).c;
+    const before = db.prepare('SELECT COUNT(*) AS c FROM messages').get().c;
+    const info = db.prepare('DELETE FROM messages WHERE created_at < ?').run(cutoff);
+    const attachmentsRemoved = purgeOrphanAttachments();
+    const kept = before - info.changes;
+    broadcastHistory();
+    res.json({ ok: true, days, cutoff, deleted: info.changes, kept, attachments_removed: attachmentsRemoved });
   });
 
   return router;

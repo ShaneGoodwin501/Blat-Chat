@@ -154,7 +154,7 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 // API
 app.use('/api/auth', buildAuthRouter(db));
 app.use('/api', buildChatRouter(db));
-app.use('/api/admin', buildAdminRouter(db));
+app.use('/api/admin', buildAdminRouter(db, () => io, DATA_DIR));
 app.use('/api/admin', buildAdminSettingsRouter(db));
 app.use('/api', buildUploadRouter(db, DATA_DIR));
 app.use('/api/auth', buildAvatarRouter(db, DATA_DIR));

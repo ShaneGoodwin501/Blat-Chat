@@ -295,6 +295,55 @@
     });
   });
 
+  // ---- Danger zone: bulk message admin ----
+  // Two destructive operations gated by typed confirmation. We make the
+  // user spell out the literal "DELETE MESSAGES" so a stray click on a
+  // modal can't wipe history. The server enforces the same token.
+  async function purgeMessages(act) {
+    const isAll = act === 'purge-all';
+    const title = t(isAll ? 'admin.danger.modal.all.title' : 'admin.danger.modal.keep5d.title');
+    const bodyText = t(isAll ? 'admin.danger.modal.all.body' : 'admin.danger.modal.keep5d.body');
+    const confirmKey = isAll ? 'admin.danger.modal.all.confirm' : 'admin.danger.modal.keep5d.confirm';
+    const primary = t(isAll ? 'admin.danger.modal.all.primary' : 'admin.danger.modal.keep5d.primary');
+    const endpoint = isAll ? '/api/admin/messages' : '/api/admin/messages/older-than/5';
+    const bodyHtml = `
+      <p style="color:var(--text-dim);margin:0 0 12px">${escapeHtml(bodyText)}</p>
+      <div class="form-row">
+        <label>${t(confirmKey)}</label>
+        <input name="confirm" required pattern="DELETE MESSAGES" autocomplete="off">
+      </div>
+    `;
+    let successResult = null;
+    const result = await showModal({
+      title, body: bodyHtml, primaryLabel: primary,
+      onSubmit: async (data) => {
+        if (data.confirm !== 'DELETE MESSAGES') throw new Error(t('admin.danger.modal.err_mismatch'));
+        try {
+          successResult = await api(endpoint, { method: 'DELETE', body: JSON.stringify({ confirm: 'DELETE MESSAGES' }) });
+          return true; // truthy -> close the modal
+        } catch (e) {
+          if (e.message === 'bad_confirm') throw new Error(t('admin.danger.modal.err_mismatch'));
+          if (e.message === 'bad_days') throw new Error(t('admin.danger.modal.err_bad_days'));
+          throw new Error(t('admin.danger.modal.err_generic', { err: e.message }));
+        }
+      },
+    });
+    if (!result || !successResult) return; // cancelled
+    // Show a success toast with what was actually removed.
+    if (isAll) {
+      toast(t('admin.danger.toast.all_done', { n: successResult.deleted, att: successResult.attachments_removed }), 'success');
+    } else {
+      toast(t('admin.danger.toast.keep5d_done', { n: successResult.deleted, kept: successResult.kept, att: successResult.attachments_removed }), 'success');
+    }
+  }
+
+  document.querySelector('.admin .card.danger')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    if (act === 'purge-all' || act === 'purge-keep5d') purgeMessages(act);
+  });
+
   // Highlight the current language as the default.
   markActiveLang(window.getLang());
 

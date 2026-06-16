@@ -1225,6 +1225,33 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .admin .card-header .count {
   font-size: 12px; color: var(--text-faint);
 }
+
+/* Danger zone card: subtle red treatment so it stands out without screaming. */
+.admin .card.danger {
+  border-color: rgba(255, 84, 112, 0.35);
+  background: linear-gradient(180deg, rgba(255, 84, 112, 0.04), rgba(255, 84, 112, 0.01)), var(--bg-1);
+}
+.admin .card.danger .card-header h2 { color: var(--danger); }
+.admin .card.danger .danger-help {
+  margin: -4px 0 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.admin .card.danger .danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.admin .card.danger .danger-row:first-of-type { border-top: 0; }
+.admin .card.danger .danger-row > div { flex: 1 1 auto; min-width: 0; }
+.admin .card.danger button.danger { flex: 0 0 auto; }
+@media (max-width: 600px) {
+  .admin .card.danger .danger-row { flex-direction: column; align-items: stretch; }
+  .admin .card.danger button.danger { width: 100%; }
+}
 .admin table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .admin th, .admin td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .admin th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
