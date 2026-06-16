@@ -62,7 +62,7 @@
       'common.error': 'Error',
 
       // Composer / chat
-      'chat.placeholder': 'Message…  (Shift+Enter to send)',
+      'chat.placeholder': 'Message…',
       'chat.send': 'Send',
       'chat.attach': 'Attach photo',
       'chat.attach_clear': 'Remove',
@@ -292,7 +292,7 @@
       'common.saved': '\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E',
       'common.error': '\u041E\u0448\u0438\u0431\u043A\u0430',
 
-      'chat.placeholder': '\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u2026  (Shift+Enter \u0434\u043B\u044F \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438)',
+      'chat.placeholder': '\u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u2026',
       'chat.send': '\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C',
       'chat.attach': '\u041F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0444\u043E\u0442\u043E',
       'chat.attach_clear': '\u0423\u0431\u0440\u0430\u0442\u044C',
