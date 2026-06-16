@@ -14,11 +14,24 @@
 // when the device rotates or the URL bar appears/disappears.
 (function () {
   function setAppHeight() {
-    document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    // visualViewport is the only API that updates when the iOS keyboard
+    // pops up. window.innerHeight stays the same on iOS Safari when the
+    // keyboard appears (it's the *layout* viewport, not the *visual*
+    // one), so without this the .app ends up taller than the visible
+    // area and the user can scroll the body to see the hidden bits.
+    const vv = window.visualViewport;
+    const h = (vv && vv.height) ? vv.height : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
   }
   setAppHeight();
   window.addEventListener('resize', setAppHeight);
   window.addEventListener('orientationchange', setAppHeight);
+  if (window.visualViewport) {
+    // Fires on iOS Safari when the keyboard appears/disappears — the
+    // event the rest of the page needs but never got.
+    window.visualViewport.addEventListener('resize', setAppHeight);
+    window.visualViewport.addEventListener('scroll', setAppHeight);
+  }
   // iOS fires the resize event after the URL bar animates in/out, so
   // setAppHeight() picks up the new viewport size automatically.
 })();
