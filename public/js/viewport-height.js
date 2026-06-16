@@ -21,6 +21,13 @@
 // The script publishes the result as a CSS custom property (`--app-height`)
 // that the .app uses. `100dvh` in the CSS is a fallback for the brief
 // moment before the script runs.
+//
+// iOS fires multiple visualViewport events during the keyboard animation
+// (the height is updated incrementally: 769 → 600 → 500 → 422 over ~250ms).
+// If we update --app-height on every event, the page visibly resizes
+// multiple times — the "wiggle" the user reported. Debounce: only the
+// LAST value in a 250ms window is accepted. The page resizes once,
+// smoothly, to the final height.
 (function () {
   // Helper: read 100dvh as a pixel value via a probe element. getComputedStyle
   // resolves CSS units, so height:'100dvh' on a positioned element gives
@@ -34,46 +41,63 @@
     return px;
   }
 
+  let currentHeight = null;     // the value currently in --app-height
+  let pendingHeight = null;     // the value waiting for the debounce to expire
+  let pendingTimer = null;
+
+  function acceptHeight(h) {
+    if (h === currentHeight) return;  // no-op: nothing changed
+    currentHeight = h;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
+    // Force scroll back to 0. iOS Safari preserves the scroll position
+    // from when the keyboard was up, leaving the page scrolled with the
+    // header cut off at the top. overflow:hidden alone doesn't reset
+    // this on iOS — you have to explicitly scrollTo.
+    try {
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      if (document.documentElement && document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+      if (document.body && document.body.scrollTop !== 0) document.body.scrollTop = 0;
+    } catch (_) { /* ignore */ }
+  }
+
   function setAppHeight() {
     const vv = window.visualViewport;
-    // visualViewport.height tracks the iOS keyboard (shrinks when keyboard
-    // pops up). On some iOS builds it does NOT account for the bottom tab
-    // bar — i.e. it can be the full screen height even when the tab bar
-    // is visible. dvh tracks the tab bar (excludes shrinkable browser UI)
-    // but does NOT update when the keyboard opens. Whichever is smaller
-    // is the actual visible area.
     const vvH = (vv && vv.height) ? vv.height : window.innerHeight;
     const dvhH = getDvhPx();
     const h = Math.min(vvH, dvhH);
-    document.documentElement.style.setProperty('--app-height', h + 'px');
-    // Force scroll back to 0. On iOS Safari, when the keyboard pops up
-    // the page gets scrolled to keep the focused input visible, and that
-    // scroll position is preserved when the keyboard dismisses — leaving
-    // the page scrolled with the header cut off at the top and the
-    // composer hidden behind the URL bar at the bottom. Resetting to 0
-    // on every viewport change keeps the page anchored. `overflow:
-    // hidden` on the body alone doesn't prevent this on iOS — you have
-    // to also explicitly reset the scroll position.
-    try {
-      window.scrollTo(0, 0);
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
-    } catch (_) { /* ignore */ }
+
+    // If this is the same as the last accepted value, no-op.
+    if (h === currentHeight) {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      pendingHeight = null;
+      return;
+    }
+
+    // If this matches the pending value, just reset the timer and wait.
+    // If it's a new pending value, restart the countdown.
+    pendingHeight = h;
+    if (pendingTimer) clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(() => {
+      acceptHeight(pendingHeight);
+      pendingHeight = null;
+      pendingTimer = null;
+    }, 250);
   }
 
   setAppHeight();
   window.addEventListener('resize', setAppHeight);
   window.addEventListener('orientationchange', setAppHeight);
   if (window.visualViewport) {
-    // Fires on iOS Safari when the keyboard appears/disappears, and when
-    // the visual viewport scrolls (which can happen at the same time).
+    // Fires on iOS Safari when the keyboard appears/disappears, and
+    // when the visual viewport scrolls. The debounce above handles
+    // the burst of events that fire during the keyboard animation.
     window.visualViewport.addEventListener('resize', setAppHeight);
     window.visualViewport.addEventListener('scroll', setAppHeight);
   }
   // Belt-and-braces: focusin on a form control is a strong signal the
   // keyboard is about to appear, focusout that it's about to disappear.
-  // The 100ms delay lets the keyboard finish its show/hide animation
-  // before we measure.
+  // These are now redundant with the visualViewport events on modern
+  // iOS but kept as a fallback for older builds / different browsers.
   document.addEventListener('focusin', () => setTimeout(setAppHeight, 100));
   document.addEventListener('focusout', () => setTimeout(setAppHeight, 350));
 })();
