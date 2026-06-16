@@ -147,16 +147,18 @@ app.get('/admin', requireAuth, (req, res) => {
 });
 app.get('/403', (req, res) => sendHtml(req, res, '403.html'));
 
-// Static frontend assets (CSS, JS, images). `index: false` + no extensions
-// so it only serves files that actually exist under /public/.
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
-
 // Serve the PWA manifest with the correct content type so Android Chrome
 // recognises it (express.static would otherwise send application/json).
+// Must be registered BEFORE the static middleware below, otherwise the
+// static handler will claim the request first.
 app.get('/manifest.json', (req, res) => {
   res.type('application/manifest+json');
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
+
+// Static frontend assets (CSS, JS, images). `index: false` + no extensions
+// so it only serves files that actually exist under /public/.
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // API
 app.use('/api/auth', buildAuthRouter(db));
