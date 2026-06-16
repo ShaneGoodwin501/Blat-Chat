@@ -316,10 +316,13 @@
   // ---- iOS PWA install instructions (in the hamburger menu) ----
   // iOS Safari doesn't expose a JS install prompt — users have to do it
   // manually via the Share sheet. We surface an "Install app" entry in
-  // the hamburger menu (visible only on iOS) that opens a modal with
-  // step-by-step instructions. The user can come back to it any time.
+  // the hamburger menu (visible on iOS / iPadOS, including third-party
+  // browsers) that opens a modal with step-by-step instructions. The
+  // user can come back to it any time.
   function isIOSDevice() {
     const ua = navigator.userAgent;
+    // Catches iOS Safari + iOS Chrome (CriOS) + iOS Firefox (FxiOS) +
+    // iOS Edge (EdgiOS) + iOS Opera (OPiOS) + iOS Brave + iOS DuckDuckGo.
     if (/iPad|iPhone|iPod/.test(ua)) return true;
     // iPadOS 13+ reports as Mac with touch points — still treat as iOS.
     if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
@@ -350,8 +353,13 @@
   const installBtn = document.getElementById('installBtn');
   if (installBtn) {
     // Only show on iOS, and only if the user hasn't already installed the PWA.
-    if (isIOSDevice() && window.navigator.standalone !== true) {
-      installBtn.classList.remove('hidden');
+    const showInstall = isIOSDevice() && window.navigator.standalone !== true;
+    if (showInstall) installBtn.classList.remove('hidden');
+    if (window.console && console.log) {
+      console.log('[blatchat] Install-app button:',
+        'isIOS=' + isIOSDevice(),
+        'standalone=' + (window.navigator.standalone === true),
+        'showing=' + showInstall);
     }
     installBtn.addEventListener('click', () => {
       const steps = [
