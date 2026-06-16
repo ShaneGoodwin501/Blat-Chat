@@ -151,6 +151,13 @@ app.get('/403', (req, res) => sendHtml(req, res, '403.html'));
 // so it only serves files that actually exist under /public/.
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
+// Serve the PWA manifest with the correct content type so Android Chrome
+// recognises it (express.static would otherwise send application/json).
+app.get('/manifest.json', (req, res) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
 // API
 app.use('/api/auth', buildAuthRouter(db));
 app.use('/api', buildChatRouter(db));

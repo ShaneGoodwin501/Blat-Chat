@@ -377,6 +377,42 @@ header.bar a.btn:hover, header.bar button.link:hover { color: var(--text); backg
 .icon-btn.fs-active .fs-enter { display: none; }
 .icon-btn.fs-active .fs-exit { display: block; }
 
+/* ----- Fallback fullscreen (iOS Safari path) -----
+   The Fullscreen API doesn't work on iOS Safari for non-video elements.
+   When the real API fails, we toggle body.fs-fallback and hide the in-page
+   header chrome (avatar, brand, menu) but keep the fullscreen button
+   visible as a floating exit control in the top-right corner. */
+body.fs-fallback header.bar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: auto;
+  height: auto;
+  padding: max(env(safe-area-inset-top, 0px), 8px) 12px 8px 12px;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none; /* let touches pass through transparent edges */
+}
+body.fs-fallback header.bar > *:not(#fullscreenBtn) { display: none; }
+body.fs-fallback #fullscreenBtn {
+  pointer-events: auto;
+  background: rgba(10, 11, 16, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  width: 44px;
+  height: 44px;
+  color: var(--text);
+}
+body.fs-fallback #fullscreenBtn:hover {
+  background: rgba(10, 11, 16, 0.8);
+}
+body.fs-fallback #fullscreenBtn:active {
+  background: rgba(10, 11, 16, 0.9);
+}
+/* Defensive: make sure the menu dropdown is never shown in fallback mode. */
+body.fs-fallback #menuDropdown { display: none !important; }
+
 /* ----- Hamburger menu button + dropdown ----- */
 .menu-btn {
   width: 40px;

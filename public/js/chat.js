@@ -404,35 +404,64 @@
     if (e.target.closest('button, a')) setMenuOpen(false);
   });
 
-  // ---- Fullscreen toggle (iOS Safari uses webkit-prefixed API) ----
-  function isFullscreen() {
+  // ---- Fullscreen toggle ----
+  // iOS Safari does NOT support requestFullscreen() on <div>/<html> elements —
+  // it only honours webkitEnterFullscreen() on <video>. To get an immersive
+  // experience on iPhone we try the real API first, then fall back to hiding
+  // the in-page chrome (header) so messages + composer fill the visible
+  // viewport. The same button toggles both modes; the icon/aria-label reflects
+  // whichever mode is active. For TRUE fullscreen on iPhone, users can install
+  // the PWA via "Add to Home Screen" — the manifest is wired up to do that.
+  function isRealFullscreen() {
     return !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
-  function enterFullscreen() {
-    const el = document.documentElement;
-    const req = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (req) {
-      try { req.call(el); } catch (_) { /* user-gesture or permission issue */ }
-    }
+  function isFallbackFullscreen() {
+    return document.body.classList.contains('fs-fallback');
   }
-  function exitFullscreen() {
+  function isAnyFullscreen() {
+    return isRealFullscreen() || isFallbackFullscreen();
+  }
+  function exitRealFullscreen() {
     const exit = document.exitFullscreen || document.webkitExitFullscreen;
     if (exit) {
       try { exit.call(document); } catch (_) {}
     }
   }
+  function tryEnterRealFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return Promise.resolve(false);
+    let result;
+    try { result = req.call(el); } catch (_) { return Promise.resolve(false); }
+    const after = (result && typeof result.then === 'function')
+      ? result.then(() => undefined, () => undefined)
+      : Promise.resolve();
+    // Give the browser a moment to actually transition into fullscreen
+    // (iOS Safari accepts the call but silently no-ops for non-video elements).
+    return after.then(() => new Promise((r) => setTimeout(() => r(isRealFullscreen()), 120)));
+  }
+  function setFallbackFullscreen(on) {
+    document.body.classList.toggle('fs-fallback', !!on);
+  }
   function setFullscreenBtnState() {
     if (!fullscreenBtn) return;
-    fullscreenBtn.classList.toggle('fs-active', isFullscreen());
-    const i18nKey = isFullscreen() ? 'header.fullscreen_exit' : 'header.fullscreen_enter';
+    const active = isAnyFullscreen();
+    fullscreenBtn.classList.toggle('fs-active', active);
+    const i18nKey = active ? 'header.fullscreen_exit' : 'header.fullscreen_enter';
     fullscreenBtn.setAttribute('data-i18n-aria', i18nKey);
-    // Re-apply current language so the label updates
     if (typeof window.callI18n === 'function') window.callI18n(fullscreenBtn);
   }
   if (fullscreenBtn) {
-    fullscreenBtn.addEventListener('click', () => {
-      if (isFullscreen()) exitFullscreen();
-      else enterFullscreen();
+    fullscreenBtn.addEventListener('click', async () => {
+      if (isRealFullscreen()) { exitRealFullscreen(); return; }
+      if (isFallbackFullscreen()) { setFallbackFullscreen(false); setFullscreenBtnState(); return; }
+      // Try the real Fullscreen API first (Android Chrome, desktop, iPad).
+      const worked = await tryEnterRealFullscreen();
+      if (!worked) {
+        // No-op on iOS Safari: hide the in-page chrome instead.
+        setFallbackFullscreen(true);
+      }
+      setFullscreenBtnState();
     });
     ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
       document.addEventListener(ev, setFullscreenBtnState);
