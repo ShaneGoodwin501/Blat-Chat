@@ -26,9 +26,21 @@ function verifyPassword(plain, hash) {
 //
 // HTML routes (/) keep the redirect-to-login behaviour so the user
 // gets a normal browser experience when they hit the site directly.
+//
+// Note: we check both req.path and (req.baseUrl + req.path) because
+// when this middleware is used INSIDE a mounted router
+// (app.use('/api/auth', router); router.get('/me', requireAuth, ...))
+// the inner req.path is RELATIVE to the mount point — it's `/me`,
+// not `/api/auth/me`. req.baseUrl gives the mount path, so the
+// combined string is the full URL.
+function isApiPath(req) {
+  if (req.path.startsWith('/api/')) return true;
+  if ((req.baseUrl || '').startsWith('/api/')) return true;
+  return false;
+}
 function requireAuth(req, res, next) {
   if (req.session && req.session.userId) return next();
-  if (req.path.startsWith('/api/')) {
+  if (isApiPath(req)) {
     return res.status(401).json({ error: 'not_authenticated' });
   }
   if (req.accepts('html')) return res.redirect('/login');
